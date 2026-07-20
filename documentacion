@@ -1,0 +1,27 @@
+Documentación Técnica: Central ETL Multi-Mandante1. Resumen del ProyectoPlataforma web contenerizada diseñada para automatizar la extracción de gestiones de call center (vía web scraping), transformar los datos según reglas dinámicas por cliente (ej. Hites), y organizar los archivos resultantes para su posterior envío por FTP/SFTP. El sistema está diseñado con una arquitectura modular para escalar a múltiples mandantes sin alterar el núcleo de extracción.2. Stack TecnológicoComponenteTecnología / LibreríaPropósito en el SistemaInfraestructuraDocker & Docker ComposeAislamiento del entorno, evitando conflictos con otros proyectos del servidor.Backend & WebPython 3.11 + FlaskOrquestación general, API y renderizado del Dashboard interno.Base de DatosPostgreSQL 15Almacenamiento de usuarios, logs del robot y configuraciones de layouts.Motor ETLPandasTransformación pesada de datos, limpieza y generación de CSVs dinámicos.ExtracciónSelenium + ChromiumNavegación headless para descarga automatizada de reportes.FrontendHTML5 + Bootstrap 5Interfaz gráfica responsiva sin necesidad de frameworks JS complejos.SeguridadFlask-Login, Limiter, WerkzeugControl de sesiones, prevención de fuerza bruta y encriptación de claves.3. Arquitectura de Contenedores y RedEl sistema corre en un entorno aislado bajo la red de Docker, utilizando mapeo de puertos para convivir pacíficamente con otros servicios (como mi-dashboard).Contenedor Web/App (central_etl_app):Puerto Externo: 9090 (Acceso al Dashboard: [http://172.26.10.200:9090](http://172.26.10.200:9090)).Puerto Interno: 5000 (Flask).Nota de infraestructura: Instala Chromium nativo desde repositorios de Debian para evadir bloqueos de firewall corporativo hacia servidores de Google.Contenedor Base de Datos (central_etl_postgres):Puerto Externo: 5433 (Para evitar choques con puertos 5432 ocupados).Volumen: postgres_multimandante_data (Persistencia de datos).4. Estructura de DirectoriosPlaintext/home/effectiva/central-etl/
+│
+├── app.py                 # Orquestador principal (Rutas Flask y Seguridad)
+├── docker-compose.yml     # Definición de servicios e infraestructura
+├── Dockerfile             # Receta del servidor Linux (Python + Chromium)
+├── requirements.txt       # Dependencias de Python
+│
+├── config/
+│   └── database.py        # Configuración SQLAlchemy y sembrado de admins
+│
+├── core/
+│   ├── extractor.py       # (Pendiente) Lógica de Selenium v29.0
+│   ├── transformador.py   # (Pendiente) Motor de Pandas
+│   └── ftp_manager.py     # (Pendiente) Envío SFTP
+│
+├── src/mandantes/         # Lógica específica por cliente (Adaptadores)
+│   └── hites.py           # (Pendiente) Reglas exactas para Hites
+│
+├── templates/             # Vistas del Frontend
+│   ├── index.html         # Dashboard principal
+│   ├── login.html         # Pantalla de acceso
+│   └── layout_hites.html  # Interfaz de mapeo de columnas
+│
+├── downloads/             # Almacenamiento temporal de descargas de Selenium
+├── logs/                  # Archivos de registro físico (etl_nightly.log)
+└── storage/outputs/       # Destino de los CSV finales estructurados (Año/Mes/Campaña)
+5. Estado Actual del Desarrollo (Checklist)✅ FASE 1: Infraestructura y Base de Datos (COMPLETADO)Creación de estructura de carpetas independiente.Configuración de docker-compose.yml con puertos 9090 y 5433.Creación de Dockerfile anti-firewall (uso de Chromium en lugar de Chrome).Integración de PostgreSQL con SQLAlchemy.Script de autogeneración de usuarios administradores con contraseñas hasheadas.✅ FASE 2: Interfaz y Seguridad (COMPLETADO)Diseño e implementación de login.html con Bootstrap.Protección de rutas con @login_required y limitador de peticiones (5 por minuto en login).Diseño de index.html (Dashboard de control).Diseño de layout_hites.html (Mapeo visual de columnas).⏳ FASE 3: Motor ETL y Lógica de Negocio (PENDIENTE PARA MAÑANA)Migrar el código de tu "Robot v29.0" (Selenium) hacia el archivo core/extractor.py.Ajustar las opciones de Selenium para que utilice el binario de chromium nativo de Linux.Integrar la lógica de limpieza de Pandas en core/transformador.py.Conectar el botón "Iniciar Proceso Ahora" del Dashboard para que dispare el script de extracción en segundo plano.6. Accesos y Credenciales ActualesURL del Sistema: [http://172.26.10.200:9090](http://172.26.10.200:9090)Usuarios habilitados: admin1, admin2, admin3Contraseña maestra: Soporte.2026*

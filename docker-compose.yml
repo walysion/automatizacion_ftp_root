@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # El motor de Base de Datos para almacenar las gestiones limpias
+  db:
+    image: postgres:15-alpine
+    container_name: central_etl_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: central_etl_db
+      POSTGRES_USER: etl_admin
+      POSTGRES_PASSWORD: etl_password_segura_2026
+    ports:
+      - "5433:5432" # Puerto 5433 expuesto para que no choque con tu otra BD
+    volumes:
+      - postgres_multimandante_data:/var/lib/postgresql/data
+
+  # El entorno de Python donde correrá tu Robot Enterprise y la API
+  app:
+    build: ./backend # <-- ACTUALIZADO: Ahora busca el Dockerfile en la carpeta backend
+    container_name: central_etl_app
+    restart: always
+    ports:
+      - "9090:5000" # <-- Puerto 9090 asignado para tu backend API (Flask)
+    volumes:
+      - ./backend:/app # <-- ACTUALIZADO: Ahora monta solo la carpeta backend
+    environment:
+      - DB_HOST=db
+      - DB_NAME=central_etl_db
+      - DB_USER=etl_admin
+      - DB_PASSWORD=etl_password_segura_2026
+      - DB_PORT=5432
+    depends_on:
+      - db
+
+  # NUEVO: Tu entorno Frontend en Vue.js
+  frontend:
+    build: ./frontend
+    container_name: central_etl_vue
+    restart: always
+    ports:
+      - "5173:5173" # <-- Puerto asignado para ver la web en Vue
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules # Protege la instalación interna de librerías de Node
+    depends_on:
+      - app
+
+volumes:
+  postgres_multimandante_data:

@@ -1,0 +1,10 @@
+Flask
+Flask-Login
+Flask-Limiter
+Flask-SQLAlchemy
+pandas
+numpy<2.0.0
+selenium
+SQLAlchemy
+psycopg2-binary
+Flask-CORS

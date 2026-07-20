@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Constructor de Layouts - Central ETL</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .table-preview th { font-size: 0.85rem; text-transform: uppercase; }
+        .table-preview td { font-size: 0.85rem; color: #555; }
+    </style>
+</head>
+<body class="bg-light">
+    <!-- BARRA SUPERIOR -->
+    <nav class="navbar navbar-dark bg-dark px-4 shadow-sm">
+        <a class="navbar-brand fw-bold" href="/">⚙️ Motor ETL Multi-Mandante</a>
+        <a href="/" class="btn btn-sm btn-outline-light fw-bold">Volver al Dashboard</a>
+    </nav>
+
+    <div class="container-fluid px-4 mt-4 mb-5">
+        
+        <!-- ========================================================= -->
+        <!-- SECCIÓN 1: DATOS CRUDOS (LO QUE EXTRAE EL ROBOT)          -->
+        <!-- ========================================================= -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-dark text-white fw-bold">
+                🗃️ 1. Datos Crudos (Extraídos de Vicidial)
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped table-hover mb-0 table-preview">
+                        <thead class="table-secondary">
+                            <tr>
+                                <th>campaign</th><th>fecha</th><th>user</th><th>rut_cliente</th>
+                                <th>telefono</th><th>cod_gestion</th><th>tipo_llamada</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaCruda">
+                            <!-- Estos datos los usamos de base para el simulador -->
+                            <tr>
+                                <td>MANT2606</td><td>01-06-2026 9:02</td><td>181897279</td>
+                                <td>76015061</td><td>56229898400</td><td>SCTN</td><td>OUTBOUND</td>
+                            </tr>
+                            <tr>
+                                <td>MANT2606</td><td>01-06-2026 9:06</td><td>181897279</td>
+                                <td>76152795</td><td>56935863826</td><td>SCTN</td><td>OUTBOUND</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- SECCIÓN 2: EL CONSTRUCTOR DEL LAYOUT (LA FÁBRICA)         -->
+        <!-- ========================================================= -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+                <span>⚙️ 2. Constructor del Archivo Final (Cliente: Hites)</span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">Define cómo quieres que se llame cada columna en el Excel final y de dónde sacará la información.</p>
+                
+                <form id="formLayout">
+                    <table class="table table-bordered align-middle" id="tablaMapeo">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="30%">1. Nombre de Columna Final (Output)</th>
+                                <th width="30%">2. ¿De qué columna cruda saco el dato?</th>
+                                <th width="30%">3. Regla de Limpieza / Formato</th>
+                                <th width="10%" class="text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cuerpoMapeo">
+                            <!-- Filas dinámicas generadas por JS -->
+                        </tbody>
+                    </table>
+                    
+                    <div class="d-flex justify-content-between mt-3">
+                        <button type="button" class="btn btn-outline-primary fw-bold" id="btnAgregarColumna">
+                            ➕ Agregar Nueva Columna
+                        </button>
+                        <button type="button" class="btn btn-warning fw-bold text-dark shadow-sm" id="btnActualizarPrev">
+                            🔄 Actualizar Previsualización
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ========================================================= -->
+        <!-- SECCIÓN 3: PREVISUALIZACIÓN DEL RESULTADO FINAL           -->
+        <!-- ========================================================= -->
+        <div class="card shadow-lg border-success mb-5">
+            <div class="card-header bg-success text-white fw-bold">
+                ✨ 3. Previsualización del Archivo Final (Así quedará el CSV)
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped table-hover mb-0 table-preview" id="tablaFinal">
+                        <thead class="table-success" id="cabeceraFinal">
+                            <!-- Generado por JS -->
+                        </thead>
+                        <tbody id="cuerpoFinal">
+                            <!-- Generado por JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer bg-white text-end py-3">
+                    <p class="text-muted small d-inline-block me-3 mb-0">Revisa la previsualización antes de guardar.</p>
+                    <button type="button" class="btn btn-success px-5 fw-bold shadow-sm">💾 Guardar Layout Definitivo</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- MOTOR JAVASCRIPT: MAGIA DE MAPEO Y PREVISUALIZACIÓN       -->
+    <!-- ========================================================= -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            
+            // 1. Base de datos simulada (Tomada de tu tabla cruda)
+            const rawData = [
+                { campaign: "MANT2606", fecha: "01-06-2026 9:02", user: "181897279", rut_cliente: "76015061", telefono: "56229898400", cod_gestion: "SCTN", tipo_llamada: "OUTBOUND" },
+                { campaign: "MANT2606", fecha: "01-06-2026 9:06", user: "181897279", rut_cliente: "76152795", telefono: "56935863826", cod_gestion: "SCTN", tipo_llamada: "OUTBOUND" }
+            ];
+
+            const columnasBase = Object.keys(rawData[0]);
+            const reglasDisponibles = ["Sin modificaciones", "Normalizar RUT", "Solo números"];
+
+            const cuerpoMapeo = document.getElementById("cuerpoMapeo");
+            const btnAgregar = document.getElementById("btnAgregarColumna");
+            const btnActualizar = document.getElementById("btnActualizarPrev");
+            
+            const cabeceraFinal = document.getElementById("cabeceraFinal");
+            const cuerpoFinal = document.getElementById("cuerpoFinal");
+
+            // Función para inyectar filas en el Constructor
+            function agregarFilaMapeo(nombreSalida = "", origenSelec = "", reglaSelec = "Sin modificaciones") {
+                const tr = document.createElement("tr");
+
+                let opcionesOrigen = `<option value="" disabled ${!origenSelec ? 'selected' : ''}>-- Selecciona Origen --</option>`;
+                columnasBase.forEach(col => {
+                    opcionesOrigen += `<option value="${col}" ${col === origenSelec ? 'selected' : ''}>${col}</option>`;
+                });
+                opcionesOrigen += `<option value="DEJAR_EN_BLANCO">-- Dejar en Blanco --</option>`;
+
+                let opcionesReglas = reglasDisponibles.map(regla => 
+                    `<option value="${regla}" ${regla === reglaSelec ? 'selected' : ''}>${regla}</option>`
+                ).join("");
+
+                tr.innerHTML = `
+                    <td>
+                        <input type="text" class="form-control fw-bold text-success input-salida" value="${nombreSalida}" placeholder="Ej: RUT_FINAL">
+                    </td>
+                    <td>
+                        <select class="form-select text-primary select-origen">
+                            ${opcionesOrigen}
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select select-regla">
+                            ${opcionesReglas}
+                        </select>
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-outline-danger btn-sm btnEliminar" title="Quitar Columna">🗑️</button>
+                    </td>
+                `;
+                cuerpoMapeo.appendChild(tr);
+            }
+
+            // Eventos de los botones
+            btnAgregar.addEventListener("click", () => agregarFilaMapeo());
+            
+            cuerpoMapeo.addEventListener("click", function(e) {
+                if(e.target.closest(".btnEliminar")) {
+                    e.target.closest("tr").remove();
+                    actualizarPrevisualizacion(); // Auto-actualiza si borras algo
+                }
+            });
+
+            // Función Maestra: Leer el constructor y dibujar la Tabla Final
+            function actualizarPrevisualizacion() {
+                // 1. Capturar la configuración actual
+                let configColumnas = [];
+                const filas = cuerpoMapeo.querySelectorAll("tr");
+                
+                filas.forEach(fila => {
+                    let salida = fila.querySelector(".input-salida").value.trim();
+                    let origen = fila.querySelector(".select-origen").value;
+                    let regla = fila.querySelector(".select-regla").value;
+                    
+                    if (salida !== "") {
+                        configColumnas.push({ salida, origen, regla });
+                    }
+                });
+
+                if (configColumnas.length === 0) {
+                    cabeceraFinal.innerHTML = "<tr><th>Agrega columnas para previsualizar</th></tr>";
+                    cuerpoFinal.innerHTML = "";
+                    return;
+                }
+
+                // 2. Dibujar Cabeceras Finales (Dinámico)
+                let theadHTML = "<tr>";
+                configColumnas.forEach(col => {
+                    theadHTML += `<th>${col.salida}</th>`;
+                });
+                theadHTML += "</tr>";
+                cabeceraFinal.innerHTML = "<tr>" + theadHTML + "</tr>";
+
+                // 3. Dibujar Datos Finales simulando las reglas
+                let tbodyHTML = "";
+                rawData.forEach(datoCrudo => {
+                    tbodyHTML += "<tr>";
+                    
+                    configColumnas.forEach(col => {
+                        let valorFinal = "";
+                        
+                        if (col.origen && col.origen !== "DEJAR_EN_BLANCO") {
+                            valorFinal = datoCrudo[col.origen] || "";
+                        }
+
+                        // Simulador de reglas básico para la vista
+                        if (valorFinal !== "") {
+                            if (col.regla === "Normalizar RUT") {
+                                valorFinal = valorFinal + "-K"; // Mock visual
+                            } else if (col.regla === "Solo números") {
+                                valorFinal = valorFinal.replace(/\D/g, ''); // Deja solo números
+                            }
+                        }
+
+                        tbodyHTML += `<td>${valorFinal}</td>`;
+                    });
+                    
+                    tbodyHTML += "</tr>";
+                });
+                cuerpoFinal.innerHTML = tbodyHTML;
+            }
+
+            // Asociar botón "Actualizar Previsualización"
+            btnActualizar.addEventListener("click", actualizarPrevisualizacion);
+
+            // Cargar layout de ejemplo al iniciar
+            agregarFilaMapeo("RUT_CLIENTE", "rut_cliente", "Normalizar RUT");
+            agregarFilaMapeo("FECHA_GESTION", "fecha", "Sin modificaciones");
+            agregarFilaMapeo("CODIGO", "cod_gestion", "Sin modificaciones");
+            
+            // Forzar primer render
+            actualizarPrevisualizacion();
+        });
+    </script>
+</body>
+</html>

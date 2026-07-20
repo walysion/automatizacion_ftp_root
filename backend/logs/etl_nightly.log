@@ -1,0 +1,141 @@
+2026-07-14 13:20:33,472 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-14 13:20:33,472 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-14 13:20:39,092 | INFO | 172.26.10.7 - - [14/Jul/2026 13:20:39] "GET / HTTP/1.1" 200 -
+2026-07-14 13:20:39,345 | INFO | 172.26.10.7 - - [14/Jul/2026 13:20:39] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-07-14 13:20:56,123 | INFO | Iniciando extracción para 1 días (2026-07-13 al 2026-07-13)...
+2026-07-14 13:20:56,925 | INFO | Iniciando sesión en Vicidial...
+2026-07-14 13:21:43,004 | ERROR | Fallo crítico: Message: 
+Stacktrace:
+#0 0x5fefa5695402 <unknown>
+#1 0x5fefa5009668 <unknown>
+#2 0x5fefa505f599 <unknown>
+#3 0x5fefa505f945 <unknown>
+#4 0x5fefa50b07c8 <unknown>
+#5 0x5fefa50887c1 <unknown>
+#6 0x5fefa50ade01 <unknown>
+#7 0x5fefa5088537 <unknown>
+#8 0x5fefa505270e <unknown>
+#9 0x5fefa50535a5 <unknown>
+#10 0x5fefa5657faa <unknown>
+#11 0x5fefa565695c <unknown>
+#12 0x5fefa565634e <unknown>
+#13 0x5fefa5656dd9 <unknown>
+#14 0x5fefa5644f49 <unknown>
+#15 0x5fefa565718c <unknown>
+#16 0x5fefa562f4f9 <unknown>
+#17 0x5fefa56802a9 <unknown>
+#18 0x5fefa5680484 <unknown>
+#19 0x5fefa5693cde <unknown>
+#20 0x733c03ea8b7b <unknown>
+
+2026-07-14 13:21:43,011 | ERROR | Traceback (most recent call last):
+  File "/app/core/extractor.py", line 120, in ejecutar_extraccion_hites
+    user_field = wait.until(EC.presence_of_element_located((By.NAME, 'username')))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/selenium/webdriver/support/wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+#0 0x5fefa5695402 <unknown>
+#1 0x5fefa5009668 <unknown>
+#2 0x5fefa505f599 <unknown>
+#3 0x5fefa505f945 <unknown>
+#4 0x5fefa50b07c8 <unknown>
+#5 0x5fefa50887c1 <unknown>
+#6 0x5fefa50ade01 <unknown>
+#7 0x5fefa5088537 <unknown>
+#8 0x5fefa505270e <unknown>
+#9 0x5fefa50535a5 <unknown>
+#10 0x5fefa5657faa <unknown>
+#11 0x5fefa565695c <unknown>
+#12 0x5fefa565634e <unknown>
+#13 0x5fefa5656dd9 <unknown>
+#14 0x5fefa5644f49 <unknown>
+#15 0x5fefa565718c <unknown>
+#16 0x5fefa562f4f9 <unknown>
+#17 0x5fefa56802a9 <unknown>
+#18 0x5fefa5680484 <unknown>
+#19 0x5fefa5693cde <unknown>
+#20 0x733c03ea8b7b <unknown>
+
+
+2026-07-14 13:21:43,073 | INFO | 172.26.10.7 - - [14/Jul/2026 13:21:43] "[32mPOST /ejecutar-etl HTTP/1.1[0m" 302 -
+2026-07-14 13:21:43,110 | INFO | 172.26.10.7 - - [14/Jul/2026 13:21:43] "GET / HTTP/1.1" 200 -
+2026-07-20 12:23:11,487 | INFO | 172.19.0.1 - - [20/Jul/2026 12:23:11] "GET /login?next=/ HTTP/1.1" 200 -
+2026-07-20 12:23:11,615 | INFO | 172.19.0.1 - - [20/Jul/2026 12:23:11] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-07-20 12:36:34,645 | INFO | 172.19.0.1 - - [20/Jul/2026 12:36:34] "POST /login HTTP/1.1" 200 -
+2026-07-20 12:36:49,551 | INFO | 172.19.0.1 - - [20/Jul/2026 12:36:49] "[32mPOST /login HTTP/1.1[0m" 302 -
+2026-07-20 12:36:49,567 | INFO | 172.19.0.1 - - [20/Jul/2026 12:36:49] "GET / HTTP/1.1" 200 -
+2026-07-20 12:40:42,686 | INFO | 172.19.0.1 - - [20/Jul/2026 12:40:42] "GET /layout/hites HTTP/1.1" 200 -
+2026-07-20 15:46:50,624 | INFO | 172.19.0.1 - - [20/Jul/2026 15:46:50] "[32mGET / HTTP/1.1[0m" 302 -
+2026-07-20 15:46:50,643 | INFO | 172.19.0.1 - - [20/Jul/2026 15:46:50] "GET /login?next=/ HTTP/1.1" 200 -
+2026-07-20 15:46:50,780 | INFO | 172.19.0.1 - - [20/Jul/2026 15:46:50] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-07-20 15:48:41,291 | INFO | 172.19.0.1 - - [20/Jul/2026 15:48:41] "[32mPOST /login HTTP/1.1[0m" 302 -
+2026-07-20 15:48:41,310 | INFO | 172.19.0.1 - - [20/Jul/2026 15:48:41] "GET / HTTP/1.1" 200 -
+2026-07-20 15:48:43,684 | INFO | 172.19.0.1 - - [20/Jul/2026 15:48:43] "GET /layout/hites HTTP/1.1" 200 -
+2026-07-20 15:49:31,019 | INFO | 172.19.0.1 - - [20/Jul/2026 15:49:31] "GET /layout/hites HTTP/1.1" 200 -
+2026-07-20 15:49:31,088 | INFO | 172.19.0.1 - - [20/Jul/2026 15:49:31] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-07-20 15:49:31,159 | INFO | 172.19.0.1 - - [20/Jul/2026 15:49:31] "GET /layout/hites HTTP/1.1" 200 -
+2026-07-20 15:49:31,220 | INFO | 172.19.0.1 - - [20/Jul/2026 15:49:31] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-07-20 15:49:31,294 | INFO | 172.19.0.1 - - [20/Jul/2026 15:49:31] "GET /layout/hites HTTP/1.1" 200 -
+2026-07-20 15:49:31,355 | INFO | 172.19.0.1 - - [20/Jul/2026 15:49:31] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-07-20 15:49:31,425 | INFO | 172.19.0.1 - - [20/Jul/2026 15:49:31] "GET /layout/hites HTTP/1.1" 200 -
+2026-07-20 15:49:31,483 | INFO | 172.19.0.1 - - [20/Jul/2026 15:49:31] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-07-20 15:49:31,562 | INFO | 172.19.0.1 - - [20/Jul/2026 15:49:31] "GET /layout/hites HTTP/1.1" 200 -
+2026-07-20 15:49:31,614 | INFO | 172.19.0.1 - - [20/Jul/2026 15:49:31] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-07-20 15:49:31,739 | INFO | 172.19.0.1 - - [20/Jul/2026 15:49:31] "GET /layout/hites HTTP/1.1" 200 -
+2026-07-20 15:49:31,796 | INFO | 172.19.0.1 - - [20/Jul/2026 15:49:31] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-07-20 15:49:31,881 | INFO | 172.19.0.1 - - [20/Jul/2026 15:49:31] "GET /layout/hites HTTP/1.1" 200 -
+2026-07-20 15:49:31,934 | INFO | 172.19.0.1 - - [20/Jul/2026 15:49:31] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-07-20 17:30:54,110 | INFO | 172.19.0.1 - - [20/Jul/2026 17:30:54] "GET /layout/hites HTTP/1.1" 200 -
+2026-07-20 17:30:56,462 | INFO | 172.19.0.1 - - [20/Jul/2026 17:30:56] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-07-20 17:31:24,547 | INFO | 172.19.0.1 - - [20/Jul/2026 17:31:24] "GET /layout/hites HTTP/1.1" 200 -
+2026-07-20 17:31:26,146 | INFO | 172.19.0.1 - - [20/Jul/2026 17:31:26] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-07-20 17:44:49,340 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-20 17:44:49,340 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-20 17:45:09,155 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-20 17:45:09,156 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-20 18:09:24,102 | INFO | 172.19.0.4 - - [20/Jul/2026 18:09:24] "[31m[1mPOST /api/login HTTP/1.1[0m" 401 -
+2026-07-20 18:09:26,490 | INFO | 172.19.0.4 - - [20/Jul/2026 18:09:26] "POST /api/login HTTP/1.1" 200 -
+2026-07-20 18:23:39,591 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-20 18:23:39,591 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-20 18:24:06,076 | INFO | 172.19.0.4 - - [20/Jul/2026 18:24:06] "POST /api/login HTTP/1.1" 200 -
+2026-07-20 18:26:51,810 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-20 18:26:51,810 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-20 18:28:51,047 | INFO | 172.19.0.4 - - [20/Jul/2026 18:28:51] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 18:29:18,439 | INFO | 172.19.0.4 - - [20/Jul/2026 18:29:18] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 18:29:24,715 | INFO | 172.19.0.4 - - [20/Jul/2026 18:29:24] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 18:32:09,376 | INFO | 172.19.0.4 - - [20/Jul/2026 18:32:09] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 18:32:10,481 | INFO | 172.19.0.4 - - [20/Jul/2026 18:32:10] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 18:32:11,615 | INFO | 172.19.0.4 - - [20/Jul/2026 18:32:11] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 18:35:48,124 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-20 18:35:48,124 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-20 18:37:00,593 | INFO | 172.19.0.4 - - [20/Jul/2026 18:37:00] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 18:37:03,379 | INFO | 172.19.0.4 - - [20/Jul/2026 18:37:03] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 20:13:40,895 | INFO | 172.19.0.4 - - [20/Jul/2026 20:13:40] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 20:17:52,950 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-20 20:17:52,950 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-20 20:18:13,288 | INFO | 172.19.0.4 - - [20/Jul/2026 20:18:13] "POST /api/login HTTP/1.1" 200 -
+2026-07-20 20:18:13,354 | INFO | 172.19.0.4 - - [20/Jul/2026 20:18:13] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 20:22:31,337 | INFO | 172.19.0.4 - - [20/Jul/2026 20:22:31] "POST /api/layout/hites/guardar HTTP/1.1" 200 -
