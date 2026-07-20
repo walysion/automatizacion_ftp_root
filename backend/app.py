@@ -96,21 +96,28 @@ def logout():
     logout_user()
     return jsonify({"success": True, "message": "Sesión cerrada correctamente."})
 
-# 4. ACTUALIZADO: Pide la configuración del layout de CUALQUIER cliente dinámicamente
+# 4. ACTUALIZADO: Pide configuración del layout Y el SFTP dinámicamente
 @app.route('/api/layout/<cliente>', methods=['GET'])
 @login_required
 def obtener_layout(cliente):
     layout = LayoutConfig.query.filter_by(cliente=cliente).first()
     
     if layout:
+        # Extraemos si es el formato nuevo (diccionario) o el viejo (lista)
+        datos = layout.columnas
+        campos = datos.get("campos", []) if isinstance(datos, dict) else datos
+        sftp = datos.get("sftp", {"dia": "Martes", "hora": "18:00", "ruta": ""}) if isinstance(datos, dict) else {"dia": "Martes", "hora": "18:00", "ruta": ""}
+        
         return jsonify({
             "success": True, 
-            "columnas": layout.columnas
+            "columnas": campos,
+            "sftp": sftp
         }), 200
     else:
         return jsonify({
             "success": True, 
-            "columnas": []
+            "columnas": [],
+            "sftp": {"dia": "Martes", "hora": "18:00", "ruta": ""}
         }), 200
 
 # ==========================================
@@ -130,37 +137,42 @@ def ejecutar_etl():
         return jsonify({"success": False, "message": mensaje}), 500
 
 # ==========================================
-# RUTA DEL CONSTRUCTOR DE LAYOUTS DINÁMICO
+# RUTA DEL CONSTRUCTOR DE LAYOUTS DINÁMICO Y SFTP
 # ==========================================
 
-# 6. ACTUALIZADO: Guarda o actualiza el layout de CUALQUIER cliente en PostgreSQL
+# 6. ACTUALIZADO: Guarda layout y configuración de SFTP empaquetados
 @app.route('/api/layout/<cliente>/guardar', methods=['POST'])
 @login_required
 def guardar_layout(cliente):
     data = request.get_json()
     
-    if not data or 'columnas' not in data:
-        return jsonify({"success": False, "message": "No se enviaron columnas válidas"}), 400
-        
-    columnas_nuevas = data['columnas']
+    # Extraemos tanto las columnas como la configuración del SFTP enviada por Vue
+    columnas_nuevas = data.get('columnas', [])
+    config_sftp = data.get('sftp', {})
+    
+    # Empaquetamos todo en un solo diccionario para guardarlo en la misma tabla de PostgreSQL
+    paquete_final = {
+        "campos": columnas_nuevas,
+        "sftp": config_sftp
+    }
     
     try:
         # Buscamos si ya existía un registro previo para este cliente específico
         layout_existente = LayoutConfig.query.filter_by(cliente=cliente).first()
         
         if layout_existente:
-            layout_existente.columnas = columnas_nuevas
-            print(f"🔄 Actualizando layout en la BD para el cliente: {cliente}")
+            layout_existente.columnas = paquete_final
+            print(f"🔄 Actualizando layout y SFTP en la BD para el cliente: {cliente}")
         else:
-            nuevo_layout = LayoutConfig(cliente=cliente, columnas=columnas_nuevas)
+            nuevo_layout = LayoutConfig(cliente=cliente, columnas=paquete_final)
             db.session.add(nuevo_layout)
-            print(f"💾 Creando nuevo registro de layout en la BD para el cliente: {cliente}")
+            print(f"💾 Creando nuevo registro de layout y SFTP en la BD para el cliente: {cliente}")
             
         db.session.commit()
         
         return jsonify({
             "success": True, 
-            "message": f"¡Configuración de Layout para {cliente.upper()} guardada con éxito!"
+            "message": f"¡Configuración de Layout y SFTP para {cliente.upper()} guardada con éxito!"
         }), 200
         
     except Exception as e:

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'; 
+import { ref, onMounted, computed } from 'vue'; 
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 
@@ -40,30 +40,36 @@ const ejecutarRobot = async () => {
 };
 
 // ==========================================
-// LÓGICA DEL CONSTRUCTOR DE LAYOUT MULTIMANDANTE
+// LÓGICA DEL CONSTRUCTOR Y CONFIGURACIÓN SFTP
 // ==========================================
 const mandanteActivo = ref('hites'); // Mandante por defecto
 const columnasLayout = ref([]);
+const configuracionSFTP = ref({
+    dia: 'Martes',
+    hora: '18:00',
+    ruta: 'in/gestiones/mes_año'
+});
+
 const nuevaColumnaNombre = ref('');
 const nuevaColumnaTipo = ref('Texto');
 const guardandoLayout = ref(false);
 const mensajeLayout = ref('');
 
-// Función para ir a buscar las columnas del mandante seleccionado a la base de datos
+// Función para ir a buscar las columnas y el SFTP a la base de datos
 const cargarLayoutDelMandante = async () => {
     mensajeLayout.value = ''; // Limpiamos alertas
     try {
         const respuesta = await axios.get(`/api/layout/${mandanteActivo.value}`);
-        if (respuesta.data.success && respuesta.data.columnas) {
-            columnasLayout.value = respuesta.data.columnas;
-            console.log(`Layout de ${mandanteActivo.value} cargado correctamente.`);
+        if (respuesta.data.success) {
+            columnasLayout.value = respuesta.data.columnas || [];
+            configuracionSFTP.value = respuesta.data.sftp || { dia: 'Martes', hora: '18:00', ruta: '' };
         }
     } catch (error) {
-        console.error("Error al cargar el layout:", error);
+        console.error("Error al cargar configuración:", error);
     }
 };
 
-// Carga el layout inicial (Hites) apenas se abre la pantalla
+// Carga el layout inicial apenas se abre la pantalla
 onMounted(() => {
     cargarLayoutDelMandante();
 });
@@ -87,16 +93,17 @@ const eliminarColumna = (id) => {
     columnasLayout.value = columnasLayout.value.filter(col => col.id !== id);
 };
 
-// Envía la estructura final a PostgreSQL usando el mandante activo en la URL
+// Envía la estructura final y configuración SFTP a PostgreSQL
 const guardarLayout = async () => {
     guardandoLayout.value = true;
     mensajeLayout.value = '';
     
     try {
         await axios.post(`/api/layout/${mandanteActivo.value}/guardar`, {
-            columnas: columnasLayout.value
+            columnas: columnasLayout.value,
+            sftp: configuracionSFTP.value
         });
-        mensajeLayout.value = `✅ Layout para ${mandanteActivo.value.toUpperCase()} guardado en PostgreSQL.`;
+        mensajeLayout.value = `✅ Layout y SFTP guardados para ${mandanteActivo.value.toUpperCase()}.`;
     } catch (error) {
         mensajeLayout.value = '❌ Error al guardar en la base de datos';
     } finally {
@@ -104,6 +111,20 @@ const guardarLayout = async () => {
         setTimeout(() => { mensajeLayout.value = '' }, 4000);
     }
 };
+
+// ==========================================
+// 🌟 PREVISUALIZADOR EXCEL (DATOS DE PRUEBA)
+// ==========================================
+const filaEjemplo = computed(() => {
+    const fila = {};
+    columnasLayout.value.forEach(col => {
+        if (col.tipo === 'Numero') fila[col.nombre] = '16873765';
+        else if (col.tipo === 'Fecha') fila[col.nombre] = '12-06-2026';
+        else if (col.tipo === 'Decimal') fila[col.nombre] = '99.90';
+        else fila[col.nombre] = 'Dato_Ejemplo'; // Texto
+    });
+    return fila;
+});
 </script>
 
 <template>
@@ -119,41 +140,61 @@ const guardarLayout = async () => {
     </nav>
 
     <!-- Contenedor Principal (Grid para las dos secciones) -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
         
-        <!-- TARJETA 1: ACCIONES DEL ROBOT -->
-        <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); align-self: start;">
-            <h3 style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">🤖 Operaciones del Motor ETL</h3>
-            <p style="color: #6c757d; margin-bottom: 25px;">
-                Dispara el Script de Selenium correspondiente para navegar de forma automatizada, descargar las carteras de clientes y procesar la información.
-            </p>
+        <!-- COLUMNA IZQUIERDA: ROBOT Y SFTP -->
+        <div style="display: flex; flex-direction: column; gap: 20px;">
             
-            <button 
-                @click="ejecutarRobot" 
-                :disabled="ejecutando"
-                style="padding: 14px 24px; color: white; border: none; border-radius: 6px; font-weight: bold; width: 100%; cursor: pointer;"
-                :style="{ backgroundColor: ejecutando ? '#6c757d' : '#0d6efd' }"
-            >
-                <span v-if="ejecutando">⏳ Ejecutando Extracción Hites...</span>
-                <span v-else>▶️ INICIAR ROBOT HITES</span>
-            </button>
+            <!-- TARJETA 1: ACCIONES DEL ROBOT -->
+            <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                <h3 style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">🤖 Operaciones ETL</h3>
+                <p style="color: #6c757d; margin-bottom: 25px; font-size: 14px;">
+                    Dispara el Script de Selenium para descargar carteras y procesar la información.
+                </p>
+                
+                <button 
+                    @click="ejecutarRobot" 
+                    :disabled="ejecutando"
+                    style="padding: 14px 24px; color: white; border: none; border-radius: 6px; font-weight: bold; width: 100%; cursor: pointer;"
+                    :style="{ backgroundColor: ejecutando ? '#6c757d' : '#0d6efd' }"
+                >
+                    <span v-if="ejecutando">⏳ Ejecutando Extracción...</span>
+                    <span v-else>▶️ INICIAR ROBOT HITES</span>
+                </button>
 
-            <div v-if="resultadoMensaje" style="margin-top: 20px; padding: 15px; border-radius: 6px; font-weight: bold; text-align: center;"
-                :style="{ backgroundColor: resultadoTipo === 'success' ? '#d1e7dd' : '#f8d7da', color: resultadoTipo === 'success' ? '#0f5132' : '#842029' }">
-                {{ resultadoMensaje }}
+                <div v-if="resultadoMensaje" style="margin-top: 15px; padding: 10px; border-radius: 6px; font-weight: bold; text-align: center;"
+                    :style="{ backgroundColor: resultadoTipo === 'success' ? '#d1e7dd' : '#f8d7da', color: resultadoTipo === 'success' ? '#0f5132' : '#842029' }">
+                    {{ resultadoMensaje }}
+                </div>
             </div>
+
+            <!-- TARJETA 2: CONFIGURACIÓN SFTP -->
+            <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                <h3 style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">🕒 Horario de Inyección SFTP</h3>
+                
+                <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Frecuencia de entrega:</label>
+                <select v-model="configuracionSFTP.dia" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; background: white;">
+                    <option value="Lunes">Todos los días LUNES</option>
+                    <option value="Martes">Todos los días MARTES</option>
+                    <option value="Miercoles">Todos los días MIÉRCOLES</option>
+                    <option value="Jueves">Todos los días JUEVES</option>
+                    <option value="Viernes">Todos los días VIERNES</option>
+                    <option value="Diario">Todos los días (L-V)</option>
+                </select>
+
+                <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Hora límite de carga:</label>
+                <input type="time" v-model="configuracionSFTP.hora" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
+
+                <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Ruta propuesta SFTP:</label>
+                <input type="text" v-model="configuracionSFTP.ruta" placeholder="Ej: in/gestiones/mes_año" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
+            </div>
+
         </div>
 
-        <!-- TARJETA 2: CONSTRUCTOR MULTIMANDANTE -->
+        <!-- COLUMNA DERECHA: CONSTRUCTOR Y PREVIEW -->
         <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
             <h3 style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">📝 Mapeador de Layouts Multimandante</h3>
             
-            <!-- CAJA INSTRUCTIVA -->
-            <div style="background: #e2f0fe; color: #0a4275; padding: 15px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; line-height: 1.4; border: 1px solid #b8dbfd;">
-                💡 <strong>¿Qué hace esta pantalla?</strong><br>
-                Cada portal (Hites, Ripley, etc.) entrega los archivos con nombres de columnas distintos. Aquí defines qué columnas y tipos de datos tiene el archivo de cada mandante. El motor ETL leerá esta configuración para inyectar la información correctamente en PostgreSQL.
-            </div>
-
             <!-- SELECTOR DE MANDANTE ACTIVO -->
             <div style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #dee2e6;">
                 <label style="font-weight: bold; color: #495057; display: block; margin-bottom: 8px;">🏢 Seleccionar Mandante a Configurar:</label>
@@ -166,6 +207,29 @@ const guardarLayout = async () => {
                     <option value="ripley">Ripley (Cobranza Activa)</option>
                     <option value="lider">Líder / BCI (Prendario)</option>
                 </select>
+            </div>
+
+            <!-- SIMULADOR EXCEL (PREVIEW) -->
+            <div v-if="columnasLayout.length > 0" style="margin-bottom: 25px; border: 2px solid #198754; border-radius: 6px; overflow: hidden;">
+                <div style="background: #198754; color: white; padding: 10px; font-weight: bold; font-size: 14px;">
+                    📊 Previsualización del CSV Final (Simulación Excel)
+                </div>
+                <div style="overflow-x: auto; padding: 10px; background: #f8f9fa;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center;">
+                        <thead>
+                            <tr style="background: #0d6efd; color: white;">
+                                <th v-for="col in columnasLayout" :key="col.id" style="padding: 8px; border: 1px solid #dee2e6; white-space: nowrap;">{{ col.nombre }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="background: white;">
+                                <td v-for="col in columnasLayout" :key="col.id" style="padding: 8px; border: 1px solid #dee2e6; color: #495057; white-space: nowrap;">
+                                    {{ filaEjemplo[col.nombre] }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Controles para agregar nueva columna -->
