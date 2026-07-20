@@ -62,10 +62,13 @@ def get_date_list(start_str, end_str):
     return dates
 
 def ejecutar_extraccion_hites(start_date=None, end_date=None):
+    # =================================================================
+    # CAMBIO APLICADO: Si no se envían fechas, buscará los datos de HOY
+    # =================================================================
     if not start_date or not end_date:
-        ayer = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-        start_date = ayer
-        end_date = ayer
+        hoy = datetime.now().strftime("%Y-%m-%d")
+        start_date = hoy
+        end_date = hoy
 
     start_time_exec = time.time()
     total_rows_processed = 0
@@ -86,6 +89,16 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
 
     if not vici_url or not vici_user or not vici_pass:
         return False, "❌ Faltan credenciales de Vicidial. Por favor, configúralas en la tarjeta del Dashboard."
+
+    # =================================================================
+    # SEPARACIÓN DEL FLUJO: URL de Login vs URL de Descarga
+    # =================================================================
+    login_url = vici_url
+    if "index.php" in login_url:
+        export_base_url = login_url.replace("index.php", "grilla/export_gestiones.php")
+    else:
+        # Fallback en caso de que pongan la URL antigua en el panel
+        export_base_url = "https://vicieffectiva.telexpress.cl/sistema_gestion/grilla/export_gestiones.php"
 
     # =================================================================
     # 3. CARGAR CONFIGURACIÓN DE LAYOUT HITES DESDE LA BASE DE DATOS
@@ -141,11 +154,13 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
         wait = WebDriverWait(driver, 30)
 
         # ---------------------------------------------------------
-        # LOGIN VICIDIAL CON CONTROL DE ERRORES Y FOTOS
+        # PASO 1: LOGIN VICIDIAL (Módulo de autenticación)
         # ---------------------------------------------------------
-        log_print(f"Iniciando sesión en la URL: {vici_url}...")
+        log_print(f"Abriendo página de login: {login_url}")
         try:
-            driver.get(vici_url)
+            driver.get(login_url)
+            time.sleep(2) # Darle tiempo a la página a renderizar
+            driver.save_screenshot(os.path.join(DOWNLOAD_DIR, "1_pantalla_login.png"))
             
             # Esperamos la casilla de usuario
             user_field = wait.until(EC.presence_of_element_located((By.NAME, 'username')))
@@ -159,7 +174,8 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
                 driver.find_element(By.NAME, 'password').submit()
             
             time.sleep(3)
-            log_print("Sesión iniciada correctamente.")
+            driver.save_screenshot(os.path.join(DOWNLOAD_DIR, "2_pantalla_post_login.png"))
+            log_print("Sesión iniciada correctamente. Fotos de validación creadas en descargas.")
 
         except TimeoutException:
             # ¡Si falla, tomamos la foto inmediatamente!
@@ -169,7 +185,7 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
             raise Exception("Timeout al intentar cargar el formulario de Vicidial. Revisa la foto del error o la conexión de red.")
 
         # ---------------------------------------------------------
-        # BUCLE ITERATIVO DE DESCARGA
+        # PASO 2: NAVEGACIÓN Y BUCLE ITERATIVO DE DESCARGA
         # ---------------------------------------------------------
         for target_date in date_list:
             log_print(f"TRABAJANDO: Día {target_date}")
@@ -178,8 +194,12 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
                 try: os.remove(f)
                 except: pass
 
-            direct_download_url = f"{vici_url}?desde={target_date}&hasta={target_date}&rut=&valor_buscar=RUT&campana="
+            direct_download_url = f"{export_base_url}?desde={target_date}&hasta={target_date}&rut=&valor_buscar=RUT&campana="
+            log_print(f"Navegando a exportador: {export_base_url} ...")
+            
             driver.get(direct_download_url)
+            time.sleep(3) # Esperar a que reaccione el botón/descarga
+            driver.save_screenshot(os.path.join(DOWNLOAD_DIR, f"3_pantalla_descarga_{target_date}.png"))
             
             downloaded_file = None
             for _ in range(45): 
@@ -192,7 +212,7 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
                 time.sleep(1)
                 
             if not downloaded_file:
-                log_print(f"No se generó reporte para {target_date}. Saltando...", "error")
+                log_print(f"No se generó reporte para {target_date}. Revisa '3_pantalla_descarga_{target_date}.png'. Saltando...", "error")
                 continue
 
             # ---------------------------------------------------------
@@ -303,7 +323,7 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
         return True, msg_final
 
     except Exception as e:
-        error_msg = f"Fallo crítico (Posible caída de internet en el contenedor): {str(e)}"
+        error_msg = f"Fallo crítico (Posible caída de internet en el contenedor o cambio en la web): {str(e)}"
         
         # Último recurso: tomar foto de cualquier otro error general
         if driver:

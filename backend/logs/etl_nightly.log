@@ -286,3 +286,29 @@ Exception: Timeout al intentar cargar el formulario de Vicidial. Revisa la foto 
 2026-07-20 21:39:50,041 | ERROR | No se generó reporte para 2026-07-19. Saltando...
 2026-07-20 21:39:50,041 | INFO | Extracción completada. 0 filas procesadas en 48.56s.
 2026-07-20 21:39:50,118 | INFO | 172.19.0.4 - - [20/Jul/2026 21:39:50] "POST /api/ejecutar-etl HTTP/1.1" 200 -
+2026-07-20 21:47:34,812 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-20 21:47:34,812 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-20 21:48:37,844 | INFO | 172.19.0.4 - - [20/Jul/2026 21:48:37] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 21:48:37,863 | INFO | 172.19.0.4 - - [20/Jul/2026 21:48:37] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-20 21:48:38,691 | INFO | 172.19.0.4 - - [20/Jul/2026 21:48:38] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 21:48:38,711 | INFO | 172.19.0.4 - - [20/Jul/2026 21:48:38] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-20 21:49:17,304 | INFO | Iniciando extracción para 1 días (2026-07-20 al 2026-07-20)...
+2026-07-20 21:49:17,529 | INFO | Iniciando sesión en la URL: https://vicieffectiva.telexpress.cl/sistema_gestion/index.php...
+2026-07-20 21:49:20,754 | INFO | Sesión iniciada correctamente.
+2026-07-20 21:49:20,754 | INFO | TRABAJANDO: Día 2026-07-20
+2026-07-20 21:50:05,824 | ERROR | No se generó reporte para 2026-07-20. Saltando...
+2026-07-20 21:50:05,824 | INFO | Extracción completada. 0 filas procesadas en 48.53s.
+2026-07-20 21:50:05,900 | INFO | 172.19.0.4 - - [20/Jul/2026 21:50:05] "POST /api/ejecutar-etl HTTP/1.1" 200 -
+2026-07-20 21:56:46,641 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-20 21:56:46,641 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-20 21:57:08,735 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-20 21:57:08,735 | INFO | [33mPress CTRL+C to quit[0m
