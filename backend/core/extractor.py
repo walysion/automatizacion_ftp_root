@@ -3,6 +3,7 @@ import time
 import glob
 import logging
 import traceback
+import json
 import pandas as pd
 from datetime import datetime, timedelta
 from sqlalchemy import create_engine, text
@@ -13,6 +14,9 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
+# Importamos nuestro nuevo inyector
+from core.inyector import inyectar_ftp_resiliente
 
 # =================================================================
 # 1. CONFIGURACIÓN DE RUTAS Y BASE DE DATOS
@@ -77,6 +81,24 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
     total_rows_processed = 0
     driver = None
     date_list = get_date_list(start_date, end_date)
+
+    # ---------------------------------------------------------
+    # NUEVO: EXTRAER CONFIGURACIÓN DEL LAYOUT Y FTP DESDE LA BD
+    # ---------------------------------------------------------
+    hites_campos = []
+    hites_sftp = {}
+    try:
+        with engine.connect() as conn:
+            res = conn.execute(text("SELECT columnas FROM layout_configs WHERE cliente = 'hites'")).fetchone()
+            if res and res[0]:
+                config_json = res[0] if isinstance(res[0], dict) else json.loads(res[0])
+                hites_campos = config_json.get('campos', [])
+                hites_sftp = config_json.get('sftp', {})
+    except Exception as e:
+        log_print(f"Advertencia: No se pudo cargar layout de Hites desde PostgreSQL: {e}", "error")
+
+    if not hites_campos:
+        log_print("⚠️ ALERTA: No hay columnas configuradas para Hites en el Dashboard. El proceso se ejecutará, pero no se enviará FTP.", "error")
 
     log_print(f"Iniciando extracción para {len(date_list)} días ({start_date} al {end_date})...")
 
@@ -194,7 +216,7 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
                 df['fecha'] = df['fecha'].dt.strftime('%Y-%m-%d %H:%M:%S')
 
             # ---------------------------------------------------------
-            # INSERCIÓN EN POSTGRESQL
+            # INSERCIÓN EN POSTGRESQL (CRUDO LIMPIO)
             # ---------------------------------------------------------
             cols_db = ['fecha', 'user', 'rut_cliente', 'telefono', 'cod_gestion', 'monto_compromiso', 'fecha_compromiso', 'campaign', 'glosa']
             cols_a_insertar = [c for c in df.columns if c in cols_db]
@@ -219,7 +241,53 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
                 df_final.to_sql("gestiones", conn, if_exists="append", index=False)
 
             total_rows_processed += len(df_final)
-            log_print(f"Día {target_date} guardado con éxito ({len(df_final):,} filas).")
+            log_print(f"Día {target_date} guardado con éxito en Base de Datos ({len(df_final):,} filas).")
+
+            # ---------------------------------------------------------
+            # GENERACIÓN DE ARCHIVO MANDANTE Y SUBIDA FTP (HITES)
+            # ---------------------------------------------------------
+            if hites_campos:
+                log_print("🔀 Aislando campaña HITE y aplicando Layout dinámico...")
+                
+                # Filtrado temprano: Solo lo que contenga 'HITE' en campaign
+                df_hites = df_final[df_final['campaign'].str.contains('HITE', case=False, na=False)].copy()
+                
+                if not df_hites.empty:
+                    df_ftp = pd.DataFrame()
+                    
+                    # Mapeo inteligente cruzando tus columnas de DB con las del Layout de Vue
+                    for col in hites_campos:
+                        c_name = col['nombre']
+                        if 'RUT' in c_name: df_ftp[c_name] = df_hites['rut_cliente']
+                        elif 'TELEFONO' in c_name: df_ftp[c_name] = df_hites['telefono']
+                        elif 'COMENTARIO' in c_name: df_ftp[c_name] = df_hites['glosa']
+                        elif 'FECHA' in c_name: df_ftp[c_name] = pd.to_datetime(df_hites['fecha']).dt.strftime('%d-%m-%Y')
+                        elif 'HORA' in c_name: df_ftp[c_name] = pd.to_datetime(df_hites['fecha']).dt.strftime('%H:%M:%S')
+                        elif 'GESTOR' in c_name: df_ftp[c_name] = df_hites['user']
+                        elif 'ACCION' in c_name or 'RESULTADO' in c_name: df_ftp[c_name] = df_hites['cod_gestion']
+                        elif 'EMPRESA' in c_name: df_ftp[c_name] = "Effectiva SPA"
+                        else: df_ftp[c_name] = "" # Campos vacíos obligatorios
+                    
+                    # Llenamos espacios vacíos y exportamos como CSV separado por comas
+                    df_ftp = df_ftp.fillna('')
+                    fecha_str = target_date.replace("-", "")
+                    archivo_csv_ftp = os.path.join(DOWNLOAD_DIR, f"HITES_GESTIONES_{fecha_str}.csv")
+                    df_ftp.to_csv(archivo_csv_ftp, index=False, sep=',')
+                    
+                    # Preparamos la ruta FTP dinámica (Reemplazando mes_año)
+                    mes_anio = datetime.now().strftime("%m_%Y")
+                    ruta_ftp_destino = hites_sftp.get('ruta', f'in/gestiones/{mes_anio}')
+                    ruta_ftp_destino = ruta_ftp_destino.replace('mes_año', mes_anio)
+                    
+                    log_print(f"🌐 Inyectando archivo de Hites al FTP en {ruta_ftp_destino}...")
+                    exito_inyeccion = inyectar_ftp_resiliente("hites", archivo_csv_ftp, ruta_ftp_destino)
+                    
+                    if exito_inyeccion:
+                        log_print(f"✅ ¡Inyección FTP exitosa para Hites ({len(df_ftp)} registros)!")
+                    else:
+                        log_print(f"❌ Falló la inyección FTP para Hites del día {target_date}.", "error")
+                else:
+                    log_print(f"⚠️ El archivo del día {target_date} no contenía registros de la campaña HITES.")
 
         # ---------------------------------------------------------
         # FIN DEL PROCESO
