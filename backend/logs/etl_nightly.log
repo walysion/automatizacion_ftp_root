@@ -151,3 +151,138 @@ Stacktrace:
  * Running on http://127.0.0.1:5000
  * Running on http://172.19.0.3:5000
 2026-07-20 21:08:02,234 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-20 21:08:56,539 | INFO | 172.19.0.4 - - [20/Jul/2026 21:08:56] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 21:09:21,564 | INFO | 172.19.0.4 - - [20/Jul/2026 21:09:21] "POST /api/layout/hites/guardar HTTP/1.1" 200 -
+2026-07-20 21:13:29,977 | INFO | Iniciando extracción para 1 días (2026-07-19 al 2026-07-19)...
+2026-07-20 21:13:31,055 | INFO | Iniciando sesión en Vicidial...
+2026-07-20 21:14:15,000 | ERROR | Fallo crítico: Message: 
+Stacktrace:
+#0 0x63aafa0af402 <unknown>
+#1 0x63aaf9a23668 <unknown>
+#2 0x63aaf9a79599 <unknown>
+#3 0x63aaf9a79945 <unknown>
+#4 0x63aaf9aca7c8 <unknown>
+#5 0x63aaf9aa27c1 <unknown>
+#6 0x63aaf9ac7e01 <unknown>
+#7 0x63aaf9aa2537 <unknown>
+#8 0x63aaf9a6c70e <unknown>
+#9 0x63aaf9a6d5a5 <unknown>
+#10 0x63aafa071faa <unknown>
+#11 0x63aafa07095c <unknown>
+#12 0x63aafa07034e <unknown>
+#13 0x63aafa070dd9 <unknown>
+#14 0x63aafa05ef49 <unknown>
+#15 0x63aafa07118c <unknown>
+#16 0x63aafa0494f9 <unknown>
+#17 0x63aafa09a2a9 <unknown>
+#18 0x63aafa09a484 <unknown>
+#19 0x63aafa0adcde <unknown>
+#20 0x7856ed942b7b <unknown>
+
+2026-07-20 21:14:15,007 | ERROR | Traceback (most recent call last):
+  File "/app/core/extractor.py", line 142, in ejecutar_extraccion_hites
+    user_field = wait.until(EC.presence_of_element_located((By.NAME, 'username')))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/selenium/webdriver/support/wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+#0 0x63aafa0af402 <unknown>
+#1 0x63aaf9a23668 <unknown>
+#2 0x63aaf9a79599 <unknown>
+#3 0x63aaf9a79945 <unknown>
+#4 0x63aaf9aca7c8 <unknown>
+#5 0x63aaf9aa27c1 <unknown>
+#6 0x63aaf9ac7e01 <unknown>
+#7 0x63aaf9aa2537 <unknown>
+#8 0x63aaf9a6c70e <unknown>
+#9 0x63aaf9a6d5a5 <unknown>
+#10 0x63aafa071faa <unknown>
+#11 0x63aafa07095c <unknown>
+#12 0x63aafa07034e <unknown>
+#13 0x63aafa070dd9 <unknown>
+#14 0x63aafa05ef49 <unknown>
+#15 0x63aafa07118c <unknown>
+#16 0x63aafa0494f9 <unknown>
+#17 0x63aafa09a2a9 <unknown>
+#18 0x63aafa09a484 <unknown>
+#19 0x63aafa0adcde <unknown>
+#20 0x7856ed942b7b <unknown>
+
+
+2026-07-20 21:14:15,069 | INFO | 172.19.0.4 - - [20/Jul/2026 21:14:15] "[35m[1mPOST /api/ejecutar-etl HTTP/1.1[0m" 500 -
+2026-07-20 21:17:27,848 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-20 21:17:27,848 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-20 21:19:32,985 | INFO | 172.19.0.4 - - [20/Jul/2026 21:19:32] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 21:19:36,556 | INFO | 172.19.0.4 - - [20/Jul/2026 21:19:36] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 21:19:44,412 | INFO | Iniciando extracción para 1 días (2026-07-19 al 2026-07-19)...
+2026-07-20 21:19:44,648 | INFO | Iniciando sesión en Vicidial...
+2026-07-20 21:20:28,586 | ERROR | 📸 ¡CRASH! La página no cargó o cambió. Foto guardada en: /app/downloads/error_login_vicidial.png
+2026-07-20 21:20:28,639 | ERROR | 📸 Foto del error guardada en: /app/downloads/error_general.png
+2026-07-20 21:20:28,639 | ERROR | Fallo crítico (Posible caída de internet en el contenedor): Timeout al intentar cargar el formulario de Vicidial. Revisa la foto del error.
+2026-07-20 21:20:28,641 | ERROR | Traceback (most recent call last):
+  File "/app/core/extractor.py", line 137, in ejecutar_extraccion_hites
+    user_field = wait.until(EC.presence_of_element_located((By.NAME, 'username')))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/selenium/webdriver/support/wait.py", line 121, in until
+    raise TimeoutException(message, screen, stacktrace)
+selenium.common.exceptions.TimeoutException: Message: 
+Stacktrace:
+#0 0x59e11f75c402 <unknown>
+#1 0x59e11f0d0668 <unknown>
+#2 0x59e11f126599 <unknown>
+#3 0x59e11f126945 <unknown>
+#4 0x59e11f1777c8 <unknown>
+#5 0x59e11f14f7c1 <unknown>
+#6 0x59e11f174e01 <unknown>
+#7 0x59e11f14f537 <unknown>
+#8 0x59e11f11970e <unknown>
+#9 0x59e11f11a5a5 <unknown>
+#10 0x59e11f71efaa <unknown>
+#11 0x59e11f71d95c <unknown>
+#12 0x59e11f71d34e <unknown>
+#13 0x59e11f71ddd9 <unknown>
+#14 0x59e11f70bf49 <unknown>
+#15 0x59e11f71e18c <unknown>
+#16 0x59e11f6f64f9 <unknown>
+#17 0x59e11f7472a9 <unknown>
+#18 0x59e11f747484 <unknown>
+#19 0x59e11f75acde <unknown>
+#20 0x727e41931b7b <unknown>
+
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/app/core/extractor.py", line 155, in ejecutar_extraccion_hites
+    raise Exception("Timeout al intentar cargar el formulario de Vicidial. Revisa la foto del error.")
+Exception: Timeout al intentar cargar el formulario de Vicidial. Revisa la foto del error.
+
+2026-07-20 21:20:28,709 | INFO | 172.19.0.4 - - [20/Jul/2026 21:20:28] "[35m[1mPOST /api/ejecutar-etl HTTP/1.1[0m" 500 -
+2026-07-20 21:34:24,804 | INFO | 172.19.0.4 - - [20/Jul/2026 21:34:24] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 21:34:24,836 | INFO | 172.19.0.4 - - [20/Jul/2026 21:34:24] "[33mGET /api/config/vicidial HTTP/1.1[0m" 404 -
+2026-07-20 21:35:00,630 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-20 21:35:00,630 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-20 21:35:36,987 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-20 21:35:36,987 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-20 21:36:47,299 | INFO | 172.19.0.4 - - [20/Jul/2026 21:36:47] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 21:36:47,373 | INFO | 172.19.0.4 - - [20/Jul/2026 21:36:47] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-20 21:36:49,263 | INFO | 172.19.0.4 - - [20/Jul/2026 21:36:49] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-20 21:36:49,285 | INFO | 172.19.0.4 - - [20/Jul/2026 21:36:49] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-20 21:38:16,471 | INFO | 172.19.0.4 - - [20/Jul/2026 21:38:16] "POST /api/config/vicidial/guardar HTTP/1.1" 200 -
+2026-07-20 21:39:01,500 | INFO | Iniciando extracción para 1 días (2026-07-19 al 2026-07-19)...
+2026-07-20 21:39:01,744 | INFO | Iniciando sesión en la URL: https://vicieffectiva.telexpress.cl/sistema_gestion/index.php...
+2026-07-20 21:39:04,978 | INFO | Sesión iniciada correctamente.
+2026-07-20 21:39:04,978 | INFO | TRABAJANDO: Día 2026-07-19
+2026-07-20 21:39:50,041 | ERROR | No se generó reporte para 2026-07-19. Saltando...
+2026-07-20 21:39:50,041 | INFO | Extracción completada. 0 filas procesadas en 48.56s.
+2026-07-20 21:39:50,118 | INFO | 172.19.0.4 - - [20/Jul/2026 21:39:50] "POST /api/ejecutar-etl HTTP/1.1" 200 -

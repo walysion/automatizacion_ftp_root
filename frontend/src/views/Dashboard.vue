@@ -40,7 +40,7 @@ const ejecutarRobot = async () => {
 };
 
 // ==========================================
-// LÓGICA DEL CONSTRUCTOR Y CONFIGURACIÓN SFTP
+// LÓGICA DEL CONSTRUCTOR, SFTP Y VICIDIAL
 // ==========================================
 const mandanteActivo = ref('hites'); // Mandante por defecto
 const columnasLayout = ref([]);
@@ -55,23 +55,37 @@ const nuevaColumnaTipo = ref('Texto');
 const guardandoLayout = ref(false);
 const mensajeLayout = ref('');
 
-// Función para ir a buscar las columnas y el SFTP a la base de datos
-const cargarLayoutDelMandante = async () => {
+// NUEVO: Variables para la configuración de Vicidial
+const viciConfig = ref({ url: '', username: '', password: '' });
+const guardandoVici = ref(false);
+const mensajeVici = ref('');
+
+// Función centralizada para cargar TODAS las configuraciones desde la BD
+const cargarConfiguraciones = async () => {
     mensajeLayout.value = ''; // Limpiamos alertas
     try {
-        const respuesta = await axios.get(`/api/layout/${mandanteActivo.value}`);
-        if (respuesta.data.success) {
-            columnasLayout.value = respuesta.data.columnas || [];
-            configuracionSFTP.value = respuesta.data.sftp || { dia: 'Martes', hora: '18:00', ruta: '' };
+        // 1. Cargar Layout y SFTP del mandante seleccionado
+        const respuestaLayout = await axios.get(`/api/layout/${mandanteActivo.value}`);
+        if (respuestaLayout.data.success) {
+            columnasLayout.value = respuestaLayout.data.columnas || [];
+            configuracionSFTP.value = respuestaLayout.data.sftp || { dia: 'Martes', hora: '18:00', ruta: '' };
+        }
+
+        // 2. Cargar Credenciales de Vicidial
+        const respuestaVici = await axios.get('/api/config/vicidial');
+        if (respuestaVici.data.success) {
+            viciConfig.value.url = respuestaVici.data.url;
+            viciConfig.value.username = respuestaVici.data.username;
+            viciConfig.value.password = respuestaVici.data.password;
         }
     } catch (error) {
-        console.error("Error al cargar configuración:", error);
+        console.error("Error al cargar configuraciones:", error);
     }
 };
 
-// Carga el layout inicial apenas se abre la pantalla
+// Carga las configuraciones apenas se abre la pantalla
 onMounted(() => {
-    cargarLayoutDelMandante();
+    cargarConfiguraciones();
 });
 
 // Añade una fila temporal en la tabla
@@ -112,6 +126,22 @@ const guardarLayout = async () => {
     }
 };
 
+// NUEVO: Función para enviar credenciales de Vicidial a PostgreSQL
+const guardarVicidial = async () => {
+    guardandoVici.value = true;
+    mensajeVici.value = '';
+    
+    try {
+        await axios.post('/api/config/vicidial/guardar', viciConfig.value);
+        mensajeVici.value = `✅ Credenciales de Vicidial guardadas correctamente.`;
+    } catch (error) {
+        mensajeVici.value = '❌ Error al guardar credenciales en la base de datos.';
+    } finally {
+        guardandoVici.value = false;
+        setTimeout(() => { mensajeVici.value = '' }, 4000);
+    }
+};
+
 // ==========================================
 // 🌟 PREVISUALIZADOR EXCEL (DATOS DE PRUEBA)
 // ==========================================
@@ -142,7 +172,7 @@ const filaEjemplo = computed(() => {
     <!-- Contenedor Principal (Grid para las dos secciones) -->
     <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
         
-        <!-- COLUMNA IZQUIERDA: ROBOT Y SFTP -->
+        <!-- COLUMNA IZQUIERDA: ROBOT, SFTP Y VICIDIAL -->
         <div style="display: flex; flex-direction: column; gap: 20px;">
             
             <!-- TARJETA 1: ACCIONES DEL ROBOT -->
@@ -165,6 +195,31 @@ const filaEjemplo = computed(() => {
                 <div v-if="resultadoMensaje" style="margin-top: 15px; padding: 10px; border-radius: 6px; font-weight: bold; text-align: center;"
                     :style="{ backgroundColor: resultadoTipo === 'success' ? '#d1e7dd' : '#f8d7da', color: resultadoTipo === 'success' ? '#0f5132' : '#842029' }">
                     {{ resultadoMensaje }}
+                </div>
+            </div>
+
+            <!-- NUEVA TARJETA 1.5: CREDENCIALES VICIDIAL -->
+            <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                <h3 style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">🔐 Accesos Vicidial</h3>
+                
+                <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">URL de Exportación:</label>
+                <input type="text" v-model="viciConfig.url" placeholder="https://vicieffectiva..." style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
+
+                <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Usuario:</label>
+                <input type="text" v-model="viciConfig.username" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
+
+                <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Contraseña:</label>
+                <input type="password" v-model="viciConfig.password" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
+
+                <button 
+                    @click="guardarVicidial" 
+                    :disabled="guardandoVici" 
+                    style="width: 100%; padding: 10px; background: #0dcaf0; color: #000; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;"
+                >
+                    {{ guardandoVici ? 'Guardando...' : 'Guardar Credenciales' }}
+                </button>
+                <div v-if="mensajeVici" style="margin-top: 10px; text-align: center; font-weight: bold; padding: 8px; background: #d1e7dd; color: #0f5132; border-radius: 4px; font-size: 13px;">
+                    {{ mensajeVici }}
                 </div>
             </div>
 
@@ -198,9 +253,10 @@ const filaEjemplo = computed(() => {
             <!-- SELECTOR DE MANDANTE ACTIVO -->
             <div style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #dee2e6;">
                 <label style="font-weight: bold; color: #495057; display: block; margin-bottom: 8px;">🏢 Seleccionar Mandante a Configurar:</label>
+                <!-- NUEVO: Actualizamos @change para cargar TODAS las configuraciones -->
                 <select 
                     v-model="mandanteActivo" 
-                    @change="cargarLayoutDelMandante"
+                    @change="cargarConfiguraciones"
                     style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 15px; font-weight: bold; background-color: white; cursor: pointer;"
                 >
                     <option value="hites">Hites (Cartera Retail)</option>
@@ -278,7 +334,7 @@ const filaEjemplo = computed(() => {
                 </table>
             </div>
 
-            <!-- Botón Guardar -->
+            <!-- Botón Guardar Layout -->
             <button 
                 @click="guardarLayout"
                 :disabled="columnasLayout.length === 0 || guardandoLayout"

@@ -26,12 +26,23 @@ class LayoutConfig(db.Model):
     cliente = db.Column(db.String(50), unique=True, nullable=False)  # Ejemplo: 'hites'
     columnas = db.Column(db.JSON, nullable=False)  # Aquí se guarda el array completo enviado desde Vue
 
+# ========================================================
+# NUEVO MODELO: Para guardar las credenciales de Vicidial
+# ========================================================
+class VicidialConfig(db.Model):
+    __tablename__ = 'vicidial_configs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    url = db.Column(db.String(255), nullable=False)
+    username = db.Column(db.String(100), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+
 def init_db_and_admins(app):
     """
     Crea las tablas si no existen e inyecta los 3 usuarios administradores iniciales.
     """
     with app.app_context():
-        # Crea todas las tablas definidas en los modelos (usuarios_admin y layout_configs)
+        # Crea todas las tablas definidas en los modelos
         db.create_all()
 
         # Lista de administradores a crear por defecto (Usuario, Contraseña temporal)

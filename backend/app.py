@@ -6,8 +6,8 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.security import check_password_hash
 
-# Importamos los modelos y funciones de BD
-from config.database import db, User, LayoutConfig, init_db_and_admins
+# Importamos los modelos y funciones de BD (NUEVO: Se agregó VicidialConfig)
+from config.database import db, User, LayoutConfig, VicidialConfig, init_db_and_admins
 from core.extractor import ejecutar_extraccion_hites
 
 app = Flask(__name__)
@@ -182,6 +182,52 @@ def guardar_layout(cliente):
             "success": False, 
             "message": f"Error interno en la BD: {str(e)}"
         }), 500
+
+# ==========================================
+# NUEVAS RUTAS: CREDENCIALES DE VICIDIAL
+# ==========================================
+
+# 7. Obtener las credenciales guardadas
+@app.route('/api/config/vicidial', methods=['GET'])
+@login_required
+def get_vicidial_config():
+    config = VicidialConfig.query.first()
+    if config:
+        return jsonify({
+            "success": True, 
+            "url": config.url, 
+            "username": config.username, 
+            "password": config.password
+        }), 200
+    
+    return jsonify({"success": True, "url": "", "username": "", "password": ""}), 200
+
+# 8. Guardar o actualizar las credenciales
+@app.route('/api/config/vicidial/guardar', methods=['POST'])
+@login_required
+def save_vicidial_config():
+    data = request.get_json()
+    try:
+        config = VicidialConfig.query.first()
+        if config:
+            config.url = data.get('url', '')
+            config.username = data.get('username', '')
+            config.password = data.get('password', '')
+        else:
+            nueva_config = VicidialConfig(
+                url=data.get('url', ''), 
+                username=data.get('username', ''), 
+                password=data.get('password', '')
+            )
+            db.session.add(nueva_config)
+            
+        db.session.commit()
+        print("💾 Credenciales de Vicidial guardadas exitosamente.")
+        return jsonify({"success": True, "message": "Credenciales de Vicidial guardadas."}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Error al guardar credenciales en BD: {str(e)}")
+        return jsonify({"success": False, "message": f"Error BD: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
