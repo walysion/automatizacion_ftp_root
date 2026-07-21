@@ -312,3 +312,84 @@ Exception: Timeout al intentar cargar el formulario de Vicidial. Revisa la foto 
  * Running on http://127.0.0.1:5000
  * Running on http://172.19.0.3:5000
 2026-07-20 21:57:08,735 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-21 12:46:28,818 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-21 12:46:28,818 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-21 13:27:33,819 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-21 13:27:33,820 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-21 13:34:19,707 | INFO | 172.19.0.4 - - [21/Jul/2026 13:34:19] "POST /api/login HTTP/1.1" 200 -
+2026-07-21 13:34:20,113 | INFO | 172.19.0.4 - - [21/Jul/2026 13:34:20] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-21 13:34:20,424 | INFO | 172.19.0.4 - - [21/Jul/2026 13:34:20] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-21 13:34:25,199 | INFO | Iniciando extracción para 1 días (2026-07-21 al 2026-07-21)...
+2026-07-21 13:34:26,302 | INFO | Abriendo página de login: https://vicieffectiva.telexpress.cl/sistema_gestion/index.php
+2026-07-21 13:34:31,895 | INFO | Sesión iniciada correctamente. Fotos de validación creadas en descargas.
+2026-07-21 13:34:31,895 | INFO | TRABAJANDO: Día 2026-07-21
+2026-07-21 13:34:31,895 | INFO | Navegando a exportador: https://vicieffectiva.telexpress.cl/sistema_gestion/grilla/export_gestiones.php ...
+2026-07-21 13:34:48,817 | INFO | Archivo descargado. Limpiando con Pandas...
+2026-07-21 13:34:48,951 | ERROR | 📸 Foto del error guardada en: /app/downloads/error_general.png
+2026-07-21 13:34:48,951 | ERROR | Fallo crítico (Posible caída de internet en el contenedor o cambio en la web): (psycopg2.errors.SyntaxError) syntax error at or near "user"
+LINE 3:                         fecha TEXT, user TEXT, rut_cliente T...
+                                            ^
+
+[SQL: 
+                    CREATE TABLE IF NOT EXISTS gestiones (
+                        fecha TEXT, user TEXT, rut_cliente TEXT, telefono TEXT, 
+                        cod_gestion TEXT, monto_compromiso TEXT, fecha_compromiso TEXT, 
+                        campaign TEXT, glosa TEXT
+                    )
+                ]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+2026-07-21 13:34:48,955 | ERROR | Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.errors.SyntaxError: syntax error at or near "user"
+LINE 3:                         fecha TEXT, user TEXT, rut_cliente T...
+                                            ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/app/core/extractor.py", line 265, in ejecutar_extraccion_hites
+    conn.execute(text("""
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1421, in execute
+    return meth(
+           ^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1643, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1848, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1988, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2365, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.ProgrammingError: (psycopg2.errors.SyntaxError) syntax error at or near "user"
+LINE 3:                         fecha TEXT, user TEXT, rut_cliente T...
+                                            ^
+
+[SQL: 
+                    CREATE TABLE IF NOT EXISTS gestiones (
+                        fecha TEXT, user TEXT, rut_cliente TEXT, telefono TEXT, 
+                        cod_gestion TEXT, monto_compromiso TEXT, fecha_compromiso TEXT, 
+                        campaign TEXT, glosa TEXT
+                    )
+                ]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+2026-07-21 13:34:49,014 | INFO | 172.19.0.4 - - [21/Jul/2026 13:34:49] "[35m[1mPOST /api/ejecutar-etl HTTP/1.1[0m" 500 -

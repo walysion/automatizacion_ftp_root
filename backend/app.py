@@ -26,8 +26,8 @@ DB_NAME = os.getenv('DB_NAME', 'central_etl_db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Habilitamos CORS permitiendo credenciales (cookies de sesión) desde Vue
-CORS(app, supports_credentials=True, origins=["http://172.26.10.200:5173", "http://localhost:5173"])
+# ACTUALIZADO: Habilitamos CORS para el nuevo puerto 8088
+CORS(app, supports_credentials=True, origins=["http://172.26.10.200:8088", "http://localhost:8088"])
 
 db.init_app(app)
 

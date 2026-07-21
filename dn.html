@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Técnico - Central ETL Effectiva</title>
+    <style>
+        :root {
+            --bg-dark: #1e1e2f;
+            --bg-sidebar: #27293d;
+            --text-main: #ffffff;
+            --text-muted: #9a9a9a;
+            --accent-blue: #1d8cf8;
+            --accent-green: #00bf9a;
+            --accent-red: #fd5d93;
+            --card-bg: #27293d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-sidebar);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-header h2 {
+            margin: 0;
+            color: var(--accent-blue);
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            padding: 15px 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(255,255,255,0.05);
+            color: var(--text-main);
+        }
+
+        .nav-item.active {
+            background-color: rgba(29, 140, 248, 0.1);
+            border-left-color: var(--accent-blue);
+            color: var(--text-main);
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        h1 { margin-top: 0; border-bottom: 2px solid var(--accent-blue); padding-bottom: 10px; display: inline-block; }
+        h3 { color: var(--accent-green); margin-top: 30px; }
+
+        /* Cards */
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+        .card { background-color: var(--card-bg); padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); border-top: 3px solid var(--accent-blue); }
+        .card h4 { margin-top: 0; color: var(--text-main); font-size: 1.1rem; }
+        .card p { color: var(--text-muted); line-height: 1.6; }
+        
+        .card.db-card { border-top-color: var(--accent-green); }
+        .card.ftp-card { border-top-color: var(--accent-red); }
+
+        /* Code Blocks & Links */
+        a { color: var(--accent-blue); text-decoration: none; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+        
+        pre { background-color: #11111a; padding: 15px; border-radius: 6px; overflow-x: auto; border: 1px solid rgba(255,255,255,0.1); }
+        code { font-family: Consolas, monospace; color: #00ffcc; }
+        p code, li code { background-color: rgba(255,255,255,0.1); padding: 3px 6px; border-radius: 4px; color: #ff79c6; }
+
+        /* Buttons */
+        .copy-btn {
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 10px;
+            transition: 0.2s;
+        }
+        .copy-btn:hover { background-color: #1565c0; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar Navegación -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>🤖 Central ETL v29.0</h2>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item active" onclick="showSection('inicio', this)">📌 Inicio y Resumen</li>
+            <li class="nav-item" onclick="showSection('accesos', this)">🔑 Enlaces y Credenciales</li>
+            <li class="nav-item" onclick="showSection('arquitectura', this)">🏗️ Arquitectura del Sistema</li>
+            <li class="nav-item" onclick="showSection('comandos', this)">💻 Comandos Docker</li>
+            <li class="nav-item" onclick="showSection('troubleshooting', this)">🛠️ Solución de Problemas</li>
+        </ul>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="main-content">
+
+        <!-- SECCIÓN: INICIO -->
+        <div id="inicio" class="section active">
+            <h1>Manual Técnico - Robot ETL</h1>
+            <p>Bienvenido a la documentación oficial del sistema <strong>Central ETL Multimandante</strong> (Propiedad de Effectiva SpA).</p>
+            
+            <div class="card">
+                <h4>🎯 Objetivo del Sistema</h4>
+                <p>Automatizar la extracción de miles de registros de gestiones telefónicas desde la plataforma heredada <strong>Vicidial</strong>, transformar los datos a formatos específicos requeridos por mandantes (como Hites), y depositarlos en servidores remotos SFTP evadiendo baneos de red mediante el uso de <i>Selenium Headless</i> con máscaras humanas.</p>
+            </div>
+
+            <h3>Flujo Lógico del Robot</h3>
+            <ol style="color: var(--text-muted); line-height: 1.8;">
+                <li>Recibe la orden de inicio vía API desde el Frontend (Vue.js).</li>
+                <li>Consulta en PostgreSQL las credenciales cifradas y los layouts (columnas dinámicas).</li>
+                <li>Levanta Google Chrome invisible (identificándose como humano en Windows).</li>
+                <li>Ingresa a Vicidial, sortea el login, navega al exportador y descarga el reporte diario en CSV.</li>
+                <li>Pasa los datos a un DataFrame de <code>Pandas</code>, limpia caracteres corruptos, formatea fechas y filtra por RUT.</li>
+                <li>Guarda un historial virgen en la tabla <code>gestiones</code> (PostgreSQL) usando idempotencia (borra y reescribe el día para no duplicar).</li>
+                <li>Filtra la campaña específica, arma un nuevo CSV con el layout exacto guardado, y lo inyecta por SFTP.</li>
+            </ol>
+        </div>
+
+        <!-- SECCIÓN: ACCESOS -->
+        <div id="accesos" class="section">
+            <h1>Enlaces y Credenciales</h1>
+            <p>Estos son los puntos de acceso principales para administrar el servidor. Mantén esta información segura.</p>
+
+            <div class="card-grid">
+                <!-- Panel Vue -->
+                <div class="card">
+                    <h4>🖥️ Panel de Control (Vue.js)</h4>
+                    <p>Interfaz gráfica para administrar contraseñas, armar layouts de CSV e iniciar el robot.</p>
+                    <p><strong>URL Local:</strong> <a href="http://localhost:8088" target="_blank">http://localhost:8088</a></p>
+                    <p><strong>URL Red Local:</strong> <code>http://[IP_DEL_SERVIDOR]:8088</code></p>
+                    <p><strong>Usuario Defecto:</strong> <code>admin1</code></p>
+                    <p><strong>Clave Defecto:</strong> <code>Soporte.2026*</code></p>
+                </div>
+
+                <!-- Base de Datos -->
+                <div class="card db-card">
+                    <h4>🗄️ Base de Datos (PostgreSQL)</h4>
+                    <p>Almacena logs, usuarios, layouts y el histórico de gestiones extraídas.</p>
+                    <p><strong>Host / IP:</strong> <code>localhost</code> (o IP del servidor)</p>
+                    <p><strong>Puerto Expuesto:</strong> <code>5433</code> (Usa este en DBeaver/DataGrip)</p>
+                    <p><strong>Base de datos:</strong> <code>central_etl_db</code></p>
+                    <p><strong>Usuario:</strong> <code>etl_admin</code></p>
+                    <p><strong>Password:</strong> <code>etl_password_segura_2026</code></p>
+                </div>
+
+                <!-- Servidor FTP -->
+                <div class="card ftp-card">
+                    <h4>🌐 Servidor FTP Destino</h4>
+                    <p>Lugar donde el Inyector Python deposita los CSV finales procesados.</p>
+                    <p><strong>Host:</strong> <code>ftp.effectivaspa.cl</code></p>
+                    <p><strong>Puerto:</strong> <code>21</code></p>
+                    <p><strong>Ruta defecto:</strong> <code>in/gestiones/mes_año</code></p>
+                    <p><em>(Las contraseñas del FTP están encriptadas directamente en el core del inyector por seguridad del mandante).</em></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: ARQUITECTURA -->
+        <div id="arquitectura" class="section">
+            <h1>Arquitectura del Sistema</h1>
+            <p>El sistema se levanta utilizando una orquestación pura de contenedores con <code>docker compose</code>.</p>
+            
+            <div class="card">
+                <h4>📦 Contenedores (Services)</h4>
+                <ul style="color: var(--text-muted); line-height: 1.8;">
+                    <li><code>db</code>: Imagen nativa de <strong>PostgreSQL 15 Alpine</strong>. Monta su almacenamiento en un volumen persistente para no perder datos si el servidor se apaga.</li>
+                    <li><code>app</code>: Imagen personalizada basada en <strong>Python 3.11</strong>. Contiene Flask (API Backend), Pandas, SQLAlchemy y los binarios nativos de Chromium y ChromeDriver para el scraping. Corre en el puerto <code>9090</code>.</li>
+                    <li><code>frontend</code>: Imagen basada en <strong>Node.js 20 Alpine</strong>. Compila y expone la interfaz de usuario Vue.js/Vite en el puerto <code>8088</code>.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: COMANDOS DOCKER -->
+        <div id="comandos" class="section">
+            <h1>Comandos de Mantenimiento</h1>
+            <p>Todos los comandos deben ser ejecutados en la terminal de Linux, posicionado dentro de la carpeta <code>~/central-etl</code>.</p>
+
+            <div class="card">
+                <h4>🚀 Encender el Sistema (Reinicio Seguro)</h4>
+                <p>Usa este comando para aplicar cambios en el código o reiniciar el sistema en segundo plano.</p>
+                <pre><code id="cmd1">docker compose down && docker compose up -d --build</code></pre>
+                <button class="copy-btn" onclick="copyText(document.getElementById('cmd1').innerText)">Copiar Comando</button>
+            </div>
+
+            <div class="card">
+                <h4>👀 Monitorear al Robot en Vivo (Logs)</h4>
+                <p>Comando vital para ver cómo el script de Python inicia sesión, limpia datos e inyecta al FTP.</p>
+                <pre><code id="cmd2">docker compose logs -f app</code></pre>
+                <button class="copy-btn" onclick="copyText(document.getElementById('cmd2').innerText)">Copiar Comando</button>
+            </div>
+
+            <div class="card">
+                <h4>🛑 Apagar Todo de Emergencia</h4>
+                <p>Detiene y destruye los contenedores activos (No borra la Base de Datos ni el código).</p>
+                <pre><code id="cmd3">docker compose down</code></pre>
+                <button class="copy-btn" onclick="copyText(document.getElementById('cmd3').innerText)">Copiar Comando</button>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: TROUBLESHOOTING -->
+        <div id="troubleshooting" class="section">
+            <h1>Solución de Problemas Frecuentes</h1>
+
+            <div class="card" style="border-top-color: #0dcaf0;">
+                <h4>🌐 Error ERR_CONNECTION_REFUSED al abrir el Panel</h4>
+                <p><strong>Causa:</strong> Intentar entrar con 'localhost' desde otra máquina de la red, o el servidor de Vue (Vite) está bloqueando las conexiones externas por seguridad.</p>
+                <p><strong>Solución:</strong> 
+                    <ol>
+                        <li>Asegúrate de entrar usando la IP real del servidor (Ej: <code>http://192.168.x.x:8088</code>). Puedes ver la IP ejecutando <code>hostname -I</code> en la terminal del servidor.</li>
+                        <li>Verifica que en el archivo <code>frontend/package.json</code>, el comando de inicio tenga el flag de host: <code>"dev": "vite --host --port 8088"</code>.</li>
+                    </ol>
+                </p>
+            </div>
+
+            <div class="card" style="border-top-color: var(--accent-red);">
+                <h4>❌ El robot extrae 0 filas ("No se generó reporte")</h4>
+                <p><strong>Causa:</strong> Vicidial bloqueó el acceso, la conexión a internet está caída, o las contraseñas guardadas en el panel Vue son incorrectas.</p>
+                <p><strong>Solución:</strong> 
+                    <ol>
+                        <li>Revisa que la URL en el panel Vue termine en <code>/index.php</code> (Ej: <i>https://vicieffectiva.../index.php</i>).</li>
+                        <li>Ingresa a la carpeta <code>backend/downloads/</code> en tu servidor y abre las fotos (ej: <code>1_pantalla_login.png</code>). Allí verás exactamente qué error le mostró la página al robot.</li>
+                    </ol>
+                </p>
+            </div>
+
+            <div class="card" style="border-top-color: #ffb236;">
+                <h4>⚠️ El servidor físico se reinició por corte de luz</h4>
+                <p><strong>Causa:</strong> Fallo eléctrico o reinicio de Windows/Linux host.</p>
+                <p><strong>Solución:</strong> ¡No tienes que hacer nada! El archivo <code>docker-compose.yml</code> tiene la instrucción <code>restart: always</code>. Docker encenderá la base de datos, el backend y el frontend automáticamente apenas el sistema operativo cargue.</p>
+            </div>
+
+            <div class="card" style="border-top-color: var(--accent-blue);">
+                <h4>🔄 Error de ContainerConfig al usar docker-compose</h4>
+                <p><strong>Causa:</strong> Estás usando el comando antiguo con guión (<code>docker-compose</code>) que es incompatible con bases de datos modernas.</p>
+                <p><strong>Solución:</strong> Utiliza siempre la sintaxis moderna con espacio: <code>docker compose up -d --build</code>.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Script para cambiar pestañas y copiar texto -->
+    <script>
+        function showSection(sectionId, element) {
+            // Ocultar todas las secciones
+            document.querySelectorAll('.section').forEach(sec => {
+                sec.classList.remove('active');
+            });
+            
+            // Quitar clase activa de todos los botones de navegación
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                nav.classList.remove('active');
+            });
+
+            // Mostrar la sección clickeada y marcar su botón
+            document.getElementById(sectionId).classList.add('active');
+            element.classList.add('active');
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('¡Comando copiado al portapapeles!');
+            }).catch(err => {
+                console.error('Error al copiar: ', err);
+            });
+        }
+    </script>
+</body>
+</html>

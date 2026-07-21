@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # El motor de Base de Datos para almacenar las gestiones limpias
   db:
@@ -33,13 +31,13 @@ services:
     depends_on:
       - db
 
-  # NUEVO: Tu entorno Frontend en Vue.js
+  # NUEVO: Tu entorno Frontend en Vue.js (Mudado al puerto 8088)
   frontend:
     build: ./frontend
     container_name: central_etl_vue
     restart: always
     ports:
-      - "5173:5173" # <-- Puerto asignado para ver la web en Vue
+      - "8088:8088" # <-- ¡Actualizado al nuevo puerto para evitar colisiones!
     volumes:
       - ./frontend:/app
       - /app/node_modules # Protege la instalación interna de librerías de Node
