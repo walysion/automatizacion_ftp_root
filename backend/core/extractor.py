@@ -62,9 +62,6 @@ def get_date_list(start_str, end_str):
     return dates
 
 def ejecutar_extraccion_hites(start_date=None, end_date=None):
-    # =================================================================
-    # CAMBIO APLICADO: Si no se envían fechas, buscará los datos de HOY
-    # =================================================================
     if not start_date or not end_date:
         hoy = datetime.now().strftime("%Y-%m-%d")
         start_date = hoy
@@ -97,7 +94,6 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
     if "index.php" in login_url:
         export_base_url = login_url.replace("index.php", "grilla/export_gestiones.php")
     else:
-        # Fallback en caso de que pongan la URL antigua en el panel
         export_base_url = "https://vicieffectiva.telexpress.cl/sistema_gestion/grilla/export_gestiones.php"
 
     # =================================================================
@@ -121,7 +117,6 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
     log_print(f"Iniciando extracción para {len(date_list)} días ({start_date} al {end_date})...")
 
     try:
-        # Limpieza previa de descargas antiguas
         for f in glob.glob(os.path.join(DOWNLOAD_DIR, "*")):
             try: os.remove(f)
             except: pass
@@ -134,7 +129,6 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
         chrome_options.add_argument("--window-size=1920,1080")
         chrome_options.add_argument("--ignore-certificate-errors")
         
-        # EL TRUCO DE MAGIA: Hacerle creer a Vicidial que somos un humano usando Windows normal
         chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         
         prefs = {
@@ -154,15 +148,14 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
         wait = WebDriverWait(driver, 30)
 
         # ---------------------------------------------------------
-        # PASO 1: LOGIN VICIDIAL (Módulo de autenticación)
+        # PASO 1: LOGIN VICIDIAL
         # ---------------------------------------------------------
         log_print(f"Abriendo página de login: {login_url}")
         try:
             driver.get(login_url)
-            time.sleep(2) # Darle tiempo a la página a renderizar
+            time.sleep(2) 
             driver.save_screenshot(os.path.join(DOWNLOAD_DIR, "1_pantalla_login.png"))
             
-            # Esperamos la casilla de usuario
             user_field = wait.until(EC.presence_of_element_located((By.NAME, 'username')))
             user_field.clear()
             user_field.send_keys(vici_user)
@@ -178,11 +171,10 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
             log_print("Sesión iniciada correctamente. Fotos de validación creadas en descargas.")
 
         except TimeoutException:
-            # ¡Si falla, tomamos la foto inmediatamente!
             screenshot_path = os.path.join(DOWNLOAD_DIR, "error_login_vicidial.png")
             driver.save_screenshot(screenshot_path)
             log_print(f"📸 ¡CRASH! La página no cargó o nos bloqueó. Foto guardada en: {screenshot_path}", "error")
-            raise Exception("Timeout al intentar cargar el formulario de Vicidial. Revisa la foto del error o la conexión de red.")
+            raise Exception("Timeout al intentar cargar el formulario de Vicidial.")
 
         # ---------------------------------------------------------
         # PASO 2: NAVEGACIÓN Y BUCLE ITERATIVO DE DESCARGA
@@ -198,7 +190,7 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
             log_print(f"Navegando a exportador: {export_base_url} ...")
             
             driver.get(direct_download_url)
-            time.sleep(3) # Esperar a que reaccione el botón/descarga
+            time.sleep(3) 
             driver.save_screenshot(os.path.join(DOWNLOAD_DIR, f"3_pantalla_descarga_{target_date}.png"))
             
             downloaded_file = None
@@ -230,12 +222,13 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
 
             df.columns = [str(c).lower().strip().replace(" ", "_").replace(".", "") for c in df.columns]
             
+            # ¡SOLUCIÓN APLICADA!: Agregada la palabra 'user' al diccionario para que Pandas la entienda
             renames = {
-                'fono': 'telefono', 'telefono_cliente': 'telefono',
-                'rut': 'rut_cliente', 'gestion': 'cod_gestion', 'codigo': 'cod_gestion',
-                'fecha_gestion': 'fecha', 'monto': 'monto_compromiso', 
-                'usuario': 'user', 'agente': 'user', 'campana': 'campaign',
-                'glosa': 'glosa', 'comentario': 'glosa'
+                'fono': 'telefono', 'telefono_cliente': 'telefono', 'phone_number': 'telefono',
+                'rut': 'rut_cliente', 'gestion': 'cod_gestion', 'codigo': 'cod_gestion', 'status': 'cod_gestion',
+                'fecha_gestion': 'fecha', 'call_date': 'fecha', 'monto': 'monto_compromiso', 
+                'usuario': 'gestor', 'agente': 'gestor', 'user': 'gestor', 'campana': 'campaign', 'campaign_id': 'campaign',
+                'glosa': 'glosa', 'comentario': 'glosa', 'comments': 'glosa'
             }
             df.rename(columns=renames, inplace=True)
 
@@ -252,7 +245,7 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
             # ---------------------------------------------------------
             # INSERCIÓN EN POSTGRESQL 
             # ---------------------------------------------------------
-            cols_db = ['fecha', 'user', 'rut_cliente', 'telefono', 'cod_gestion', 'monto_compromiso', 'fecha_compromiso', 'campaign', 'glosa']
+            cols_db = ['fecha', 'gestor', 'rut_cliente', 'telefono', 'cod_gestion', 'monto_compromiso', 'fecha_compromiso', 'campaign', 'glosa']
             cols_a_insertar = [c for c in df.columns if c in cols_db]
             df_final = df[cols_a_insertar]
             
@@ -264,7 +257,7 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
             with engine.begin() as conn:
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS gestiones (
-                        fecha TEXT, user TEXT, rut_cliente TEXT, telefono TEXT, 
+                        fecha TEXT, gestor TEXT, rut_cliente TEXT, telefono TEXT, 
                         cod_gestion TEXT, monto_compromiso TEXT, fecha_compromiso TEXT, 
                         campaign TEXT, glosa TEXT
                     )
@@ -286,15 +279,16 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
                 if not df_hites.empty:
                     df_ftp = pd.DataFrame()
                     
+                    # ¡SOLUCIÓN APLICADA!: Condicionales IF para que nunca vuelva a dar KeyError si falta un dato
                     for col in hites_campos:
                         c_name = col['nombre']
-                        if 'RUT' in c_name: df_ftp[c_name] = df_hites['rut_cliente']
-                        elif 'TELEFONO' in c_name: df_ftp[c_name] = df_hites['telefono']
-                        elif 'COMENTARIO' in c_name: df_ftp[c_name] = df_hites['glosa']
-                        elif 'FECHA' in c_name: df_ftp[c_name] = pd.to_datetime(df_hites['fecha']).dt.strftime('%d-%m-%Y')
-                        elif 'HORA' in c_name: df_ftp[c_name] = pd.to_datetime(df_hites['fecha']).dt.strftime('%H:%M:%S')
-                        elif 'GESTOR' in c_name: df_ftp[c_name] = df_hites['user']
-                        elif 'ACCION' in c_name or 'RESULTADO' in c_name: df_ftp[c_name] = df_hites['cod_gestion']
+                        if 'RUT' in c_name: df_ftp[c_name] = df_hites['rut_cliente'] if 'rut_cliente' in df_hites.columns else ""
+                        elif 'TELEFONO' in c_name: df_ftp[c_name] = df_hites['telefono'] if 'telefono' in df_hites.columns else ""
+                        elif 'COMENTARIO' in c_name: df_ftp[c_name] = df_hites['glosa'] if 'glosa' in df_hites.columns else ""
+                        elif 'FECHA' in c_name: df_ftp[c_name] = pd.to_datetime(df_hites['fecha']).dt.strftime('%d-%m-%Y') if 'fecha' in df_hites.columns else ""
+                        elif 'HORA' in c_name: df_ftp[c_name] = pd.to_datetime(df_hites['fecha']).dt.strftime('%H:%M:%S') if 'fecha' in df_hites.columns else ""
+                        elif 'GESTOR' in c_name: df_ftp[c_name] = df_hites['gestor'] if 'gestor' in df_hites.columns else ""
+                        elif 'ACCION' in c_name or 'RESULTADO' in c_name: df_ftp[c_name] = df_hites['cod_gestion'] if 'cod_gestion' in df_hites.columns else ""
                         elif 'EMPRESA' in c_name: df_ftp[c_name] = "Effectiva SPA"
                         else: df_ftp[c_name] = "" 
                     
@@ -325,7 +319,6 @@ def ejecutar_extraccion_hites(start_date=None, end_date=None):
     except Exception as e:
         error_msg = f"Fallo crítico (Posible caída de internet en el contenedor o cambio en la web): {str(e)}"
         
-        # Último recurso: tomar foto de cualquier otro error general
         if driver:
             try:
                 screenshot_path = os.path.join(DOWNLOAD_DIR, "error_general.png")

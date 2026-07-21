@@ -393,3 +393,78 @@ LINE 3:                         fecha TEXT, user TEXT, rut_cliente T...
 (Background on this error at: https://sqlalche.me/e/20/f405)
 
 2026-07-21 13:34:49,014 | INFO | 172.19.0.4 - - [21/Jul/2026 13:34:49] "[35m[1mPOST /api/ejecutar-etl HTTP/1.1[0m" 500 -
+2026-07-21 13:39:56,665 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-21 13:39:56,665 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-21 13:40:06,211 | INFO | 172.19.0.4 - - [21/Jul/2026 13:40:06] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-21 13:40:06,240 | INFO | 172.19.0.4 - - [21/Jul/2026 13:40:06] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-21 13:40:07,819 | INFO | 172.19.0.4 - - [21/Jul/2026 13:40:07] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-21 13:40:07,907 | INFO | 172.19.0.4 - - [21/Jul/2026 13:40:07] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-21 13:40:09,519 | INFO | 172.19.0.4 - - [21/Jul/2026 13:40:09] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-21 13:40:09,540 | INFO | 172.19.0.4 - - [21/Jul/2026 13:40:09] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-21 13:41:20,644 | INFO | Iniciando extracción para 1 días (2026-07-21 al 2026-07-21)...
+2026-07-21 13:41:20,868 | INFO | Abriendo página de login: https://vicieffectiva.telexpress.cl/sistema_gestion/index.php
+2026-07-21 13:41:26,488 | INFO | Sesión iniciada correctamente. Fotos de validación creadas en descargas.
+2026-07-21 13:41:26,489 | INFO | TRABAJANDO: Día 2026-07-21
+2026-07-21 13:41:26,489 | INFO | Navegando a exportador: https://vicieffectiva.telexpress.cl/sistema_gestion/grilla/export_gestiones.php ...
+2026-07-21 13:41:44,241 | INFO | Archivo descargado. Limpiando con Pandas...
+2026-07-21 13:41:44,283 | INFO | Día 2026-07-21 guardado con éxito en Base de Datos (498 filas).
+2026-07-21 13:41:44,283 | INFO | 🔀 Aislando campaña HITE y aplicando Layout dinámico...
+2026-07-21 13:41:44,383 | ERROR | 📸 Foto del error guardada en: /app/downloads/error_general.png
+2026-07-21 13:41:44,383 | ERROR | Fallo crítico (Posible caída de internet en el contenedor o cambio en la web): 'gestor'
+2026-07-21 13:41:44,389 | ERROR | Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3641, in get_loc
+    return self._engine.get_loc(casted_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "pandas/_libs/index.pyx", line 168, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/index.pyx", line 197, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7668, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7676, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'gestor'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/app/core/extractor.py", line 299, in ejecutar_extraccion_hites
+    elif 'GESTOR' in c_name: df_ftp[c_name] = df_hites['gestor'] # CORRECCIÓN
+                                              ~~~~~~~~^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pandas/core/frame.py", line 4378, in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/pandas/core/indexes/base.py", line 3648, in get_loc
+    raise KeyError(key) from err
+KeyError: 'gestor'
+
+2026-07-21 13:41:44,460 | INFO | 172.19.0.4 - - [21/Jul/2026 13:41:44] "[35m[1mPOST /api/ejecutar-etl HTTP/1.1[0m" 500 -
+2026-07-21 14:05:54,112 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-21 14:05:54,112 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-21 14:06:21,672 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-21 14:06:21,673 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-21 14:06:32,445 | INFO | 172.19.0.4 - - [21/Jul/2026 14:06:32] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-21 14:06:32,471 | INFO | 172.19.0.4 - - [21/Jul/2026 14:06:32] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-21 14:06:34,222 | INFO | 172.19.0.4 - - [21/Jul/2026 14:06:34] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-21 14:06:34,247 | INFO | 172.19.0.4 - - [21/Jul/2026 14:06:34] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-21 14:06:36,634 | INFO | Iniciando extracción para 1 días (2026-07-21 al 2026-07-21)...
+2026-07-21 14:06:36,877 | INFO | Abriendo página de login: https://vicieffectiva.telexpress.cl/sistema_gestion/index.php
+2026-07-21 14:06:42,505 | INFO | Sesión iniciada correctamente. Fotos de validación creadas en descargas.
+2026-07-21 14:06:42,505 | INFO | TRABAJANDO: Día 2026-07-21
+2026-07-21 14:06:42,505 | INFO | Navegando a exportador: https://vicieffectiva.telexpress.cl/sistema_gestion/grilla/export_gestiones.php ...
+2026-07-21 14:06:59,829 | INFO | Archivo descargado. Limpiando con Pandas...
+2026-07-21 14:06:59,874 | INFO | Día 2026-07-21 guardado con éxito en Base de Datos (808 filas).
+2026-07-21 14:06:59,874 | INFO | 🔀 Aislando campaña HITE y aplicando Layout dinámico...
+2026-07-21 14:06:59,881 | INFO | 🌐 Inyectando archivo de Hites al FTP en ...
+2026-07-21 14:06:59,981 | INFO | ✅ ¡Inyección FTP exitosa para Hites (199 registros)!
+2026-07-21 14:06:59,981 | INFO | Extracción completada. 808 filas procesadas en 23.38s.
+2026-07-21 14:07:00,048 | INFO | 172.19.0.4 - - [21/Jul/2026 14:07:00] "POST /api/ejecutar-etl HTTP/1.1" 200 -
+2026-07-21 14:41:17,376 | INFO | 172.19.0.4 - - [21/Jul/2026 14:41:17] "POST /api/logout HTTP/1.1" 200 -
+2026-07-21 14:53:24,017 | INFO | 172.19.0.4 - - [21/Jul/2026 14:53:24] "POST /api/login HTTP/1.1" 200 -
+2026-07-21 14:53:24,248 | INFO | 172.19.0.4 - - [21/Jul/2026 14:53:24] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-21 14:53:24,438 | INFO | 172.19.0.4 - - [21/Jul/2026 14:53:24] "GET /api/config/vicidial HTTP/1.1" 200 -
