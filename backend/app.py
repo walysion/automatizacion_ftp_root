@@ -1,5 +1,6 @@
 import os
-from flask import Flask, jsonify, request
+import glob
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS  # ⚠️ Necesario para que Vue y Flask conversen
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_limiter import Limiter
@@ -96,28 +97,31 @@ def logout():
     logout_user()
     return jsonify({"success": True, "message": "Sesión cerrada correctamente."})
 
-# 4. ACTUALIZADO: Pide configuración del layout Y el SFTP dinámicamente
+# 4. ACTUALIZADO: Pide la configuración de la Campaña y SQL dinámicamente
 @app.route('/api/layout/<cliente>', methods=['GET'])
 @login_required
 def obtener_layout(cliente):
     layout = LayoutConfig.query.filter_by(cliente=cliente).first()
     
     if layout:
-        # Extraemos si es el formato nuevo (diccionario) o el viejo (lista)
-        datos = layout.columnas
-        campos = datos.get("campos", []) if isinstance(datos, dict) else datos
-        sftp = datos.get("sftp", {"dia": "Martes", "hora": "18:00", "ruta": ""}) if isinstance(datos, dict) else {"dia": "Martes", "hora": "18:00", "ruta": ""}
+        datos = layout.columnas if isinstance(layout.columnas, dict) else {}
+        
+        prefijo = datos.get("prefijo_campana", "")
+        sql = datos.get("consulta_sql", "SELECT * FROM gestiones_raw;")
+        sftp = datos.get("sftp", {"dia": "Viernes", "hora": "21:00", "ruta": "in/gestiones/mes_año"})
         
         return jsonify({
             "success": True, 
-            "columnas": campos,
+            "prefijo_campana": prefijo,
+            "consulta_sql": sql,
             "sftp": sftp
         }), 200
     else:
         return jsonify({
             "success": True, 
-            "columnas": [],
-            "sftp": {"dia": "Martes", "hora": "18:00", "ruta": ""}
+            "prefijo_campana": "",
+            "consulta_sql": "SELECT * FROM gestiones_raw;",
+            "sftp": {"dia": "Viernes", "hora": "21:00", "ruta": "in/gestiones/mes_año"}
         }), 200
 
 # ==========================================
@@ -140,39 +144,40 @@ def ejecutar_etl():
 # RUTA DEL CONSTRUCTOR DE LAYOUTS DINÁMICO Y SFTP
 # ==========================================
 
-# 6. ACTUALIZADO: Guarda layout y configuración de SFTP empaquetados
+# 6. ACTUALIZADO: Guarda prefijo SQL y configuración de SFTP
 @app.route('/api/layout/<cliente>/guardar', methods=['POST'])
 @login_required
 def guardar_layout(cliente):
     data = request.get_json()
     
-    # Extraemos tanto las columnas como la configuración del SFTP enviada por Vue
-    columnas_nuevas = data.get('columnas', [])
+    # Extraemos la nueva estructura de datos (Prefijo, SQL y SFTP)
+    prefijo = data.get('prefijo_campana', '')
+    sql = data.get('consulta_sql', '')
     config_sftp = data.get('sftp', {})
     
-    # Empaquetamos todo en un solo diccionario para guardarlo en la misma tabla de PostgreSQL
+    # Empaquetamos todo
     paquete_final = {
-        "campos": columnas_nuevas,
+        "prefijo_campana": prefijo,
+        "consulta_sql": sql,
         "sftp": config_sftp
     }
     
     try:
-        # Buscamos si ya existía un registro previo para este cliente específico
         layout_existente = LayoutConfig.query.filter_by(cliente=cliente).first()
         
         if layout_existente:
             layout_existente.columnas = paquete_final
-            print(f"🔄 Actualizando layout y SFTP en la BD para el cliente: {cliente}")
+            print(f"🔄 Actualizando Motor SQL y SFTP en la BD para el cliente: {cliente}")
         else:
             nuevo_layout = LayoutConfig(cliente=cliente, columnas=paquete_final)
             db.session.add(nuevo_layout)
-            print(f"💾 Creando nuevo registro de layout y SFTP en la BD para el cliente: {cliente}")
+            print(f"💾 Creando nuevo Motor SQL y SFTP en la BD para el cliente: {cliente}")
             
         db.session.commit()
         
         return jsonify({
             "success": True, 
-            "message": f"¡Configuración de Layout y SFTP para {cliente.upper()} guardada con éxito!"
+            "message": f"¡Motor SQL y SFTP para {cliente.upper()} guardado con éxito!"
         }), 200
         
     except Exception as e:
@@ -228,6 +233,34 @@ def save_vicidial_config():
         db.session.rollback()
         print(f"❌ Error al guardar credenciales en BD: {str(e)}")
         return jsonify({"success": False, "message": f"Error BD: {str(e)}"}), 500
+
+# ==========================================
+# NUEVA RUTA: DESCARGAR ARCHIVO INYECTADO
+# ==========================================
+
+# 9. Descargar el último archivo procesado del cliente
+@app.route('/api/descargar-ultimo/<cliente>', methods=['GET'])
+@login_required
+def descargar_ultimo(cliente):
+    try:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        download_dir = os.path.join(base_dir, "downloads")
+        
+        # Buscar el archivo más reciente que coincida con el mandante (Ej: HITES_GESTIONES_*.csv)
+        patron_busqueda = os.path.join(download_dir, f"{cliente.upper()}_GESTIONES_*.csv")
+        archivos_encontrados = glob.glob(patron_busqueda)
+        
+        if not archivos_encontrados:
+            return jsonify({"success": False, "message": "No hay archivos generados para descargar. Ejecuta el robot primero."}), 404
+            
+        # Obtenemos el archivo creado más recientemente
+        ultimo_archivo = max(archivos_encontrados, key=os.path.getctime)
+        
+        return send_file(ultimo_archivo, as_attachment=True)
+    
+    except Exception as e:
+        print(f"❌ Error al intentar descargar el archivo: {str(e)}")
+        return jsonify({"success": False, "message": f"Error interno: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

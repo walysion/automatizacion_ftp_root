@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'; 
+import { ref, onMounted } from 'vue'; 
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 
@@ -17,9 +17,18 @@ const cerrarSesion = async () => {
 };
 
 // ==========================================
-// LÓGICA DEL ROBOT ETL
+// ESTADOS DE COLLAPSE (Para encoger tarjetas)
+// ==========================================
+const showRobot = ref(true);
+const showVicidial = ref(true);
+const showSFTP = ref(true);
+const showMotorSQL = ref(true);
+
+// ==========================================
+// LÓGICA DEL ROBOT ETL Y DESCARGA
 // ==========================================
 const ejecutando = ref(false);
+const descargando = ref(false);
 const resultadoMensaje = ref('');
 const resultadoTipo = ref('');
 
@@ -39,39 +48,91 @@ const ejecutarRobot = async () => {
     }
 };
 
+const descargarUltimoArchivo = async () => {
+    descargando.value = true;
+    try {
+        // Pedimos el archivo a la API como 'blob' (archivo binario)
+        const response = await axios.get(`/api/descargar-ultimo/${mandanteActivo.value}`, {
+            responseType: 'blob'
+        });
+        
+        // Magia para forzar la descarga en el navegador
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${mandanteActivo.value.toUpperCase()}_GESTIONES_ULTIMO.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (error) {
+        alert("No se encontró ningún archivo generado o hubo un error en la descarga.");
+    } finally {
+        descargando.value = false;
+    }
+};
+
 // ==========================================
-// LÓGICA DEL CONSTRUCTOR, SFTP Y VICIDIAL
+// LÓGICA DEL MOTOR SQL, SFTP Y VICIDIAL
 // ==========================================
-const mandanteActivo = ref('hites'); // Mandante por defecto
-const columnasLayout = ref([]);
+const mandanteActivo = ref('hites');
+
+// NUEVO: Variables del Camino C con tu código SQL de Access traducido a PostgreSQL
+const prefijoCampana = ref('HIT');
+const consultaSQL = ref(`SELECT
+    LEFT(COALESCE(rut_cliente, ''), 8) AS rut_sin_digito,
+    LEFT(COALESCE(cod_gestion, ''), 2) AS codigo_de_accion,
+    RIGHT(COALESCE(cod_gestion, ''), 2) AS codigo_de_resultado,
+    RIGHT(COALESCE(telefono, ''), 9) AS telefono_contacto,
+    'EFECTIVA' AS empresa,
+    LEFT(COALESCE(gestor, ''), 10) AS gestor,
+    TO_CHAR(fecha::timestamp, 'DD-MM-YYYY') AS fecha_gestion,
+    TO_CHAR(fecha::timestamp, 'HH24:MI:SS') AS hora_gestion,
+    LEFT(
+        REPLACE(
+            REPLACE(
+                REPLACE(
+                    REPLACE(
+                        REPLACE(
+                            REPLACE(
+                                REPLACE(COALESCE(glosa, ''), 'Ã“', 'O'),
+                            'Ã¡', 'a'),
+                        'Ã©', 'e'),
+                    'Ã-', 'i'),
+                'Ã³', 'o'),
+            'Ã±', 'n'),
+        ',', ' '),
+    150) AS comentario,
+    '' AS mail_contacto
+FROM gestiones;`);
+
 const configuracionSFTP = ref({
-    dia: 'Martes',
-    hora: '18:00',
+    dia: 'Viernes',
+    hora: '21:00',
     ruta: 'in/gestiones/mes_año'
 });
 
-const nuevaColumnaNombre = ref('');
-const nuevaColumnaTipo = ref('Texto');
 const guardandoLayout = ref(false);
 const mensajeLayout = ref('');
 
-// NUEVO: Variables para la configuración de Vicidial
 const viciConfig = ref({ url: '', username: '', password: '' });
 const guardandoVici = ref(false);
 const mensajeVici = ref('');
 
-// Función centralizada para cargar TODAS las configuraciones desde la BD
+// Cargar configuraciones (SQL + SFTP + Vici) desde PostgreSQL
 const cargarConfiguraciones = async () => {
-    mensajeLayout.value = ''; // Limpiamos alertas
+    mensajeLayout.value = ''; 
     try {
-        // 1. Cargar Layout y SFTP del mandante seleccionado
+        // 1. Cargar Motor SQL y SFTP del mandante
         const respuestaLayout = await axios.get(`/api/layout/${mandanteActivo.value}`);
-        if (respuestaLayout.data.success) {
-            columnasLayout.value = respuestaLayout.data.columnas || [];
-            configuracionSFTP.value = respuestaLayout.data.sftp || { dia: 'Martes', hora: '18:00', ruta: '' };
+        if (respuestaLayout.data.success && respuestaLayout.data.prefijo_campana) {
+            // Si ya existe configuración en la base de datos, la carga
+            prefijoCampana.value = respuestaLayout.data.prefijo_campana;
+            consultaSQL.value = respuestaLayout.data.consulta_sql;
+            configuracionSFTP.value = respuestaLayout.data.sftp;
         }
+        // Si no hay configuración previa, deja los valores por defecto que definimos arriba.
 
-        // 2. Cargar Credenciales de Vicidial
+        // 2. Cargar Accesos de Vicidial
         const respuestaVici = await axios.get('/api/config/vicidial');
         if (respuestaVici.data.success) {
             viciConfig.value.url = respuestaVici.data.url;
@@ -88,36 +149,18 @@ onMounted(() => {
     cargarConfiguraciones();
 });
 
-// Añade una fila temporal en la tabla
-const agregarColumna = () => {
-    if (nuevaColumnaNombre.value.trim() === '') return;
-    
-    columnasLayout.value.push({
-        id: Date.now(), 
-        nombre: nuevaColumnaNombre.value.toUpperCase().replace(/ /g, '_'), 
-        tipo: nuevaColumnaTipo.value
-    });
-    
-    nuevaColumnaNombre.value = '';
-    nuevaColumnaTipo.value = 'Texto';
-};
-
-// Elimina una fila temporal de la tabla
-const eliminarColumna = (id) => {
-    columnasLayout.value = columnasLayout.value.filter(col => col.id !== id);
-};
-
-// Envía la estructura final y configuración SFTP a PostgreSQL
-const guardarLayout = async () => {
+// Guardar el Motor SQL y SFTP en la BD
+const guardarMotorSQL = async () => {
     guardandoLayout.value = true;
     mensajeLayout.value = '';
     
     try {
         await axios.post(`/api/layout/${mandanteActivo.value}/guardar`, {
-            columnas: columnasLayout.value,
+            prefijo_campana: prefijoCampana.value,
+            consulta_sql: consultaSQL.value,
             sftp: configuracionSFTP.value
         });
-        mensajeLayout.value = `✅ Layout y SFTP guardados para ${mandanteActivo.value.toUpperCase()}.`;
+        mensajeLayout.value = `✅ Motor SQL y SFTP guardados para ${mandanteActivo.value.toUpperCase()}.`;
     } catch (error) {
         mensajeLayout.value = '❌ Error al guardar en la base de datos';
     } finally {
@@ -126,35 +169,20 @@ const guardarLayout = async () => {
     }
 };
 
-// NUEVO: Función para enviar credenciales de Vicidial a PostgreSQL
+// Guardar las credenciales de Vicidial
 const guardarVicidial = async () => {
     guardandoVici.value = true;
     mensajeVici.value = '';
-    
     try {
         await axios.post('/api/config/vicidial/guardar', viciConfig.value);
-        mensajeVici.value = `✅ Credenciales de Vicidial guardadas correctamente.`;
+        mensajeVici.value = `✅ Credenciales guardadas.`;
     } catch (error) {
-        mensajeVici.value = '❌ Error al guardar credenciales en la base de datos.';
+        mensajeVici.value = '❌ Error al guardar credenciales.';
     } finally {
         guardandoVici.value = false;
         setTimeout(() => { mensajeVici.value = '' }, 4000);
     }
 };
-
-// ==========================================
-// 🌟 PREVISUALIZADOR EXCEL (DATOS DE PRUEBA)
-// ==========================================
-const filaEjemplo = computed(() => {
-    const fila = {};
-    columnasLayout.value.forEach(col => {
-        if (col.tipo === 'Numero') fila[col.nombre] = '16873765';
-        else if (col.tipo === 'Fecha') fila[col.nombre] = '12-06-2026';
-        else if (col.tipo === 'Decimal') fila[col.nombre] = '99.90';
-        else fila[col.nombre] = 'Dato_Ejemplo'; // Texto
-    });
-    return fila;
-});
 </script>
 
 <template>
@@ -177,177 +205,160 @@ const filaEjemplo = computed(() => {
             
             <!-- TARJETA 1: ACCIONES DEL ROBOT -->
             <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                <h3 style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">🤖 Operaciones ETL</h3>
-                <p style="color: #6c757d; margin-bottom: 25px; font-size: 14px;">
-                    Dispara el Script de Selenium para descargar carteras y procesar la información.
-                </p>
+                <h3 @click="showRobot = !showRobot" style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between;">
+                    🤖 Operaciones ETL <span>{{ showRobot ? '🔼' : '🔽' }}</span>
+                </h3>
                 
-                <button 
-                    @click="ejecutarRobot" 
-                    :disabled="ejecutando"
-                    style="padding: 14px 24px; color: white; border: none; border-radius: 6px; font-weight: bold; width: 100%; cursor: pointer;"
-                    :style="{ backgroundColor: ejecutando ? '#6c757d' : '#0d6efd' }"
-                >
-                    <span v-if="ejecutando">⏳ Ejecutando Extracción...</span>
-                    <span v-else>▶️ INICIAR ROBOT HITES</span>
-                </button>
+                <div v-show="showRobot">
+                    <p style="color: #6c757d; margin-bottom: 25px; font-size: 14px;">
+                        Dispara el Script de Selenium para descargar carteras y procesar la información.
+                    </p>
+                    
+                    <button 
+                        @click="ejecutarRobot" 
+                        :disabled="ejecutando"
+                        style="padding: 14px 24px; color: white; border: none; border-radius: 6px; font-weight: bold; width: 100%; cursor: pointer; margin-bottom: 10px;"
+                        :style="{ backgroundColor: ejecutando ? '#6c757d' : '#0d6efd' }"
+                    >
+                        <span v-if="ejecutando">⏳ Ejecutando Extracción...</span>
+                        <span v-else>▶️ INICIAR ROBOT {{ mandanteActivo.toUpperCase() }}</span>
+                    </button>
 
-                <div v-if="resultadoMensaje" style="margin-top: 15px; padding: 10px; border-radius: 6px; font-weight: bold; text-align: center;"
-                    :style="{ backgroundColor: resultadoTipo === 'success' ? '#d1e7dd' : '#f8d7da', color: resultadoTipo === 'success' ? '#0f5132' : '#842029' }">
-                    {{ resultadoMensaje }}
+                    <!-- NUEVO BOTÓN DE DESCARGA -->
+                    <button 
+                        @click="descargarUltimoArchivo" 
+                        :disabled="descargando || ejecutando"
+                        style="padding: 12px; background: #198754; color: white; border: none; border-radius: 6px; font-weight: bold; width: 100%; cursor: pointer;"
+                    >
+                        {{ descargando ? '📥 Descargando...' : '📥 Descargar Último Archivo Inyectado' }}
+                    </button>
+
+                    <div v-if="resultadoMensaje" style="margin-top: 15px; padding: 10px; border-radius: 6px; font-weight: bold; text-align: center;"
+                        :style="{ backgroundColor: resultadoTipo === 'success' ? '#d1e7dd' : '#f8d7da', color: resultadoTipo === 'success' ? '#0f5132' : '#842029' }">
+                        {{ resultadoMensaje }}
+                    </div>
                 </div>
             </div>
 
-            <!-- NUEVA TARJETA 1.5: CREDENCIALES VICIDIAL -->
+            <!-- TARJETA 2: CREDENCIALES VICIDIAL -->
             <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                <h3 style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">🔐 Accesos Vicidial</h3>
+                <h3 @click="showVicidial = !showVicidial" style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between;">
+                    🔐 Accesos Vicidial <span>{{ showVicidial ? '🔼' : '🔽' }}</span>
+                </h3>
                 
-                <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">URL de Exportación:</label>
-                <input type="text" v-model="viciConfig.url" placeholder="https://vicieffectiva..." style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
+                <div v-show="showVicidial">
+                    <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">URL de Exportación:</label>
+                    <input type="text" v-model="viciConfig.url" placeholder="https://vicieffectiva..." style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
 
-                <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Usuario:</label>
-                <input type="text" v-model="viciConfig.username" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
+                    <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Usuario:</label>
+                    <input type="text" v-model="viciConfig.username" style="width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
 
-                <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Contraseña:</label>
-                <input type="password" v-model="viciConfig.password" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
+                    <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Contraseña:</label>
+                    <input type="password" v-model="viciConfig.password" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
 
-                <button 
-                    @click="guardarVicidial" 
-                    :disabled="guardandoVici" 
-                    style="width: 100%; padding: 10px; background: #0dcaf0; color: #000; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;"
-                >
-                    {{ guardandoVici ? 'Guardando...' : 'Guardar Credenciales' }}
-                </button>
-                <div v-if="mensajeVici" style="margin-top: 10px; text-align: center; font-weight: bold; padding: 8px; background: #d1e7dd; color: #0f5132; border-radius: 4px; font-size: 13px;">
-                    {{ mensajeVici }}
+                    <button 
+                        @click="guardarVicidial" 
+                        :disabled="guardandoVici" 
+                        style="width: 100%; padding: 10px; background: #0dcaf0; color: #000; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;"
+                    >
+                        {{ guardandoVici ? 'Guardando...' : 'Guardar Credenciales' }}
+                    </button>
+                    <div v-if="mensajeVici" style="margin-top: 10px; text-align: center; font-weight: bold; padding: 8px; background: #d1e7dd; color: #0f5132; border-radius: 4px; font-size: 13px;">
+                        {{ mensajeVici }}
+                    </div>
                 </div>
             </div>
 
-            <!-- TARJETA 2: CONFIGURACIÓN SFTP -->
+            <!-- TARJETA 3: CONFIGURACIÓN SFTP -->
             <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                <h3 style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">🕒 Horario de Inyección SFTP</h3>
+                <h3 @click="showSFTP = !showSFTP" style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between;">
+                    🕒 Horario Inyección SFTP <span>{{ showSFTP ? '🔼' : '🔽' }}</span>
+                </h3>
                 
-                <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Frecuencia de entrega:</label>
-                <select v-model="configuracionSFTP.dia" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; background: white;">
-                    <option value="Lunes">Todos los días LUNES</option>
-                    <option value="Martes">Todos los días MARTES</option>
-                    <option value="Miercoles">Todos los días MIÉRCOLES</option>
-                    <option value="Jueves">Todos los días JUEVES</option>
-                    <option value="Viernes">Todos los días VIERNES</option>
-                    <option value="Diario">Todos los días (L-V)</option>
-                </select>
+                <div v-show="showSFTP">
+                    <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Frecuencia de entrega:</label>
+                    <select v-model="configuracionSFTP.dia" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; background: white;">
+                        <option value="Lunes">Todos los días LUNES</option>
+                        <option value="Martes">Todos los días MARTES</option>
+                        <option value="Miercoles">Todos los días MIÉRCOLES</option>
+                        <option value="Jueves">Todos los días JUEVES</option>
+                        <option value="Viernes">Todos los días VIERNES</option>
+                        <option value="Diario">Todos los días (L-V)</option>
+                    </select>
 
-                <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Hora límite de carga:</label>
-                <input type="time" v-model="configuracionSFTP.hora" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
+                    <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Hora límite de carga:</label>
+                    <input type="time" v-model="configuracionSFTP.hora" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
 
-                <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Ruta propuesta SFTP:</label>
-                <input type="text" v-model="configuracionSFTP.ruta" placeholder="Ej: in/gestiones/mes_año" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
+                    <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Ruta propuesta SFTP:</label>
+                    <input type="text" v-model="configuracionSFTP.ruta" placeholder="Ej: in/gestiones/mes_año" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
+                </div>
             </div>
 
         </div>
 
-        <!-- COLUMNA DERECHA: CONSTRUCTOR Y PREVIEW -->
+        <!-- COLUMNA DERECHA: MOTOR SQL (CAMINO C) -->
         <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-            <h3 style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px;">📝 Mapeador de Layouts Multimandante</h3>
+            <h3 @click="showMotorSQL = !showMotorSQL" style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between;">
+                📝 Motor de Procesamiento SQL <span>{{ showMotorSQL ? '🔼' : '🔽' }}</span>
+            </h3>
             
-            <!-- SELECTOR DE MANDANTE ACTIVO -->
-            <div style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #dee2e6;">
-                <label style="font-weight: bold; color: #495057; display: block; margin-bottom: 8px;">🏢 Seleccionar Mandante a Configurar:</label>
-                <!-- NUEVO: Actualizamos @change para cargar TODAS las configuraciones -->
-                <select 
-                    v-model="mandanteActivo" 
-                    @change="cargarConfiguraciones"
-                    style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 15px; font-weight: bold; background-color: white; cursor: pointer;"
+            <div v-show="showMotorSQL">
+                <!-- SELECTOR DE MANDANTE ACTIVO -->
+                <div style="margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #dee2e6;">
+                    <label style="font-weight: bold; color: #495057; display: block; margin-bottom: 8px;">🏢 Seleccionar Mandante a Configurar:</label>
+                    <select 
+                        v-model="mandanteActivo" 
+                        @change="cargarConfiguraciones"
+                        style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 4px; font-size: 15px; font-weight: bold; background-color: white; cursor: pointer;"
+                    >
+                        <option value="hites">Hites (Cartera Retail)</option>
+                        <option value="ripley">Ripley (Cobranza Activa)</option>
+                        <option value="lider">Líder / BCI (Prendario)</option>
+                    </select>
+                </div>
+
+                <!-- PREFIJO DE CAMPAÑA -->
+                <div style="margin-bottom: 20px;">
+                    <label style="font-size: 14px; font-weight: bold; color: #495057; display: block; margin-bottom: 5px;">
+                        🔍 Prefijo de Campaña (Filtro)
+                    </label>
+                    <p style="font-size: 12px; color: #6c757d; margin-top: 0; margin-bottom: 5px;">El robot extraerá de la tabla cruda cualquier gestión cuya campaña empiece con este texto.</p>
+                    <input 
+                        type="text" 
+                        v-model="prefijoCampana" 
+                        placeholder="Ej: HIT" 
+                        style="width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 16px; font-weight: bold;" 
+                    />
+                </div>
+
+                <!-- CONSOLA SQL -->
+                <div style="margin-bottom: 20px;">
+                    <label style="font-size: 14px; font-weight: bold; color: #495057; display: block; margin-bottom: 5px;">
+                        💻 Consulta PostgreSQL de Transformación (El Layout)
+                    </label>
+                    <p style="font-size: 12px; color: #6c757d; margin-top: 0; margin-bottom: 5px;">Escribe el SELECT para armar tu CSV final. Los nombres de las columnas que pongas aquí serán las cabeceras exactas del CSV. La tabla base se llama <strong>gestiones</strong>.</p>
+                    
+                    <textarea 
+                        v-model="consultaSQL"
+                        spellcheck="false"
+                        style="width: 100%; height: 350px; padding: 15px; border: 1px solid #1e1e1e; border-radius: 4px; background-color: #1e1e1e; color: #00ffcc; font-family: 'Consolas', 'Courier New', monospace; font-size: 14px; line-height: 1.5; resize: vertical; box-sizing: border-box;"
+                    ></textarea>
+                </div>
+
+                <!-- Botón Guardar Motor -->
+                <button 
+                    @click="guardarMotorSQL"
+                    :disabled="guardandoLayout || !consultaSQL.trim()"
+                    style="width: 100%; padding: 12px; background: #ffc107; color: #000; border: none; border-radius: 4px; font-weight: bold; font-size: 16px; cursor: pointer;"
                 >
-                    <option value="hites">Hites (Cartera Retail)</option>
-                    <option value="ripley">Ripley (Cobranza Activa)</option>
-                    <option value="lider">Líder / BCI (Prendario)</option>
-                </select>
-            </div>
+                    {{ guardandoLayout ? 'Guardando en BD...' : '💾 Guardar SQL y Configuración SFTP' }}
+                </button>
 
-            <!-- SIMULADOR EXCEL (PREVIEW) -->
-            <div v-if="columnasLayout.length > 0" style="margin-bottom: 25px; border: 2px solid #198754; border-radius: 6px; overflow: hidden;">
-                <div style="background: #198754; color: white; padding: 10px; font-weight: bold; font-size: 14px;">
-                    📊 Previsualización del CSV Final (Simulación Excel)
-                </div>
-                <div style="overflow-x: auto; padding: 10px; background: #f8f9fa;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: center;">
-                        <thead>
-                            <tr style="background: #0d6efd; color: white;">
-                                <th v-for="col in columnasLayout" :key="col.id" style="padding: 8px; border: 1px solid #dee2e6; white-space: nowrap;">{{ col.nombre }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr style="background: white;">
-                                <td v-for="col in columnasLayout" :key="col.id" style="padding: 8px; border: 1px solid #dee2e6; color: #495057; white-space: nowrap;">
-                                    {{ filaEjemplo[col.nombre] }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- Mensaje de éxito/error -->
+                <div v-if="mensajeLayout" style="margin-top: 15px; text-align: center; font-weight: bold; padding: 10px; background: #d1e7dd; color: #0f5132; border-radius: 4px;">
+                    {{ mensajeLayout }}
                 </div>
             </div>
-
-            <!-- Controles para agregar nueva columna -->
-            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <input 
-                    v-model="nuevaColumnaNombre" 
-                    placeholder="Nombre de columna (Ej: RUT_DEUDOR)" 
-                    @keyup.enter="agregarColumna"
-                    style="flex: 2; padding: 10px; border: 1px solid #ccc; border-radius: 4px;"
-                />
-                <select v-model="nuevaColumnaTipo" style="flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 4px; background: white;">
-                    <option value="Texto">Texto</option>
-                    <option value="Numero">Número</option>
-                    <option value="Fecha">Fecha</option>
-                    <option value="Decimal">Decimal</option>
-                </select>
-                <button @click="agregarColumna" style="background: #198754; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">+</button>
-            </div>
-
-            <!-- Tabla Reactiva de Columnas -->
-            <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; overflow: hidden; margin-bottom: 20px;">
-                <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                    <thead style="background: #e9ecef;">
-                        <tr>
-                            <th style="padding: 12px; border-bottom: 1px solid #dee2e6;">Nombre de Columna</th>
-                            <th style="padding: 12px; border-bottom: 1px solid #dee2e6;">Tipo de Dato</th>
-                            <th style="padding: 12px; border-bottom: 1px solid #dee2e6; text-align: center;">Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="columna in columnasLayout" :key="columna.id">
-                            <td style="padding: 12px; border-bottom: 1px solid #dee2e6; font-family: monospace; font-weight: bold;">{{ columna.nombre }}</td>
-                            <td style="padding: 12px; border-bottom: 1px solid #dee2e6;">
-                                <span style="background: #0dcaf0; color: #000; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">{{ columna.tipo }}</span>
-                            </td>
-                            <td style="padding: 12px; border-bottom: 1px solid #dee2e6; text-align: center;">
-                                <button @click="eliminarColumna(columna.id)" style="background: #dc3545; color: white; border: none; border-radius: 4px; padding: 5px 10px; cursor: pointer;">X</button>
-                            </td>
-                        </tr>
-                        <tr v-if="columnasLayout.length === 0">
-                            <td colspan="3" style="padding: 20px; text-align: center; color: #6c757d; font-style: italic;">
-                                No hay columnas para el mandante {{ mandanteActivo.toUpperCase() }}. Crea una arriba.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Botón Guardar Layout -->
-            <button 
-                @click="guardarLayout"
-                :disabled="columnasLayout.length === 0 || guardandoLayout"
-                style="width: 100%; padding: 12px; background: #ffc107; color: #000; border: none; border-radius: 4px; font-weight: bold; font-size: 16px; cursor: pointer;"
-            >
-                {{ guardandoLayout ? 'Guardando en BD...' : '💾 Guardar Configuración en PostgreSQL' }}
-            </button>
-
-            <!-- Mensaje de éxito/error -->
-            <div v-if="mensajeLayout" style="margin-top: 15px; text-align: center; font-weight: bold; padding: 10px; background: #d1e7dd; color: #0f5132; border-radius: 4px;">
-                {{ mensajeLayout }}
-            </div>
-
         </div>
 
     </div>

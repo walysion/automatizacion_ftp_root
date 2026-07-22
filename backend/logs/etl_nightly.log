@@ -468,3 +468,29 @@ KeyError: 'gestor'
 2026-07-21 14:53:24,017 | INFO | 172.19.0.4 - - [21/Jul/2026 14:53:24] "POST /api/login HTTP/1.1" 200 -
 2026-07-21 14:53:24,248 | INFO | 172.19.0.4 - - [21/Jul/2026 14:53:24] "GET /api/layout/hites HTTP/1.1" 200 -
 2026-07-21 14:53:24,438 | INFO | 172.19.0.4 - - [21/Jul/2026 14:53:24] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-21 16:02:26,090 | INFO | 172.19.0.4 - - [21/Jul/2026 16:02:26] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-21 16:02:26,267 | INFO | 172.19.0.4 - - [21/Jul/2026 16:02:26] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-21 16:03:35,832 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-21 16:03:35,832 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-21 16:04:03,072 | INFO | 172.19.0.4 - - [21/Jul/2026 16:04:03] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-21 16:04:03,250 | INFO | 172.19.0.4 - - [21/Jul/2026 16:04:03] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-21 16:08:46,025 | INFO | 172.19.0.4 - - [21/Jul/2026 16:08:46] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-21 16:08:46,217 | INFO | 172.19.0.4 - - [21/Jul/2026 16:08:46] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-21 16:14:54,850 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-21 16:14:54,850 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-21 16:15:03,656 | INFO | 172.19.0.4 - - [21/Jul/2026 16:15:03] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-21 16:15:03,720 | INFO | 172.19.0.4 - - [21/Jul/2026 16:15:03] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-21 17:52:48,407 | INFO | 172.19.0.4 - - [21/Jul/2026 17:52:48] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-21 17:52:48,494 | INFO | 172.19.0.4 - - [21/Jul/2026 17:52:48] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-21 20:26:26,901 | INFO | 172.19.0.4 - - [21/Jul/2026 20:26:26] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-21 20:26:26,925 | INFO | 172.19.0.4 - - [21/Jul/2026 20:26:26] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-21 21:56:11,016 | INFO | 172.19.0.1 - - [21/Jul/2026 21:56:11] "[33mGET / HTTP/1.1[0m" 404 -
+2026-07-21 21:56:11,122 | INFO | 172.19.0.1 - - [21/Jul/2026 21:56:11] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2026-07-21 21:56:16,510 | INFO | 172.19.0.1 - - [21/Jul/2026 21:56:16] "[33mGET /login?next=/ HTTP/1.1[0m" 404 -
+2026-07-21 22:39:55,442 | INFO | 172.19.0.1 - - [21/Jul/2026 22:39:55] "[33mGET /login?next=/ HTTP/1.1[0m" 404 -

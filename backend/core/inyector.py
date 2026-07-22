@@ -14,7 +14,7 @@ FTP_PASS = "Reportes1650/"
 def crear_directorios_ftp(ftp, ruta):
     """
     Navega por la ruta en el FTP y crea las carpetas si no existen.
-    Ejemplo: Si la ruta es 'in/gestiones/07_2026', entra a 'in', luego a 'gestiones', etc.
+    Ejemplo: Si la ruta es 'in/gestiones/08_2026', entra a 'in', luego a 'gestiones', etc.
     """
     carpetas = ruta.strip('/').split('/')
     for carpeta in carpetas:
@@ -25,8 +25,12 @@ def crear_directorios_ftp(ftp, ruta):
         except ftplib.error_perm:
             # Si da error, es porque la carpeta no existe, así que la creamos
             print(f"📁 Creando nueva carpeta en el servidor FTP: {carpeta}")
-            ftp.mkd(carpeta)
-            ftp.cwd(carpeta)
+            try:
+                ftp.mkd(carpeta)
+                ftp.cwd(carpeta)
+            except Exception as e:
+                print(f"⚠️ No se pudo crear la carpeta {carpeta}. Error de permisos: {e}")
+                raise e
 
 def inyectar_ftp_resiliente(cliente, ruta_archivo_local, ruta_ftp_destino, max_reintentos=100):
     """
@@ -41,6 +45,12 @@ def inyectar_ftp_resiliente(cliente, ruta_archivo_local, ruta_ftp_destino, max_r
         print(f"❌ Error: El archivo {ruta_archivo_local} no existe localmente.")
         return False
 
+    # ¡NUEVA INTELIGENCIA!: Traducción automática de fecha
+    # Si la ruta dice "mes_año", el inyector lo traduce automáticamente al mes actual.
+    # Así aseguramos que en agosto cree "08_2026", en septiembre "09_2026", etc.
+    mes_actual = datetime.now().strftime("%m_%Y")
+    ruta_ftp_destino = ruta_ftp_destino.replace('mes_año', mes_actual).replace('mes_ano', mes_actual)
+
     while intento <= max_reintentos:
         try:
             print(f"[{datetime.now().strftime('%H:%M:%S')}] Intento {intento}: Conectando al FTP de {cliente.upper()} en {FTP_HOST}...")
@@ -49,9 +59,12 @@ def inyectar_ftp_resiliente(cliente, ruta_archivo_local, ruta_ftp_destino, max_r
             ftp = ftplib.FTP()
             ftp.connect(FTP_HOST, FTP_PORT, timeout=30)
             ftp.login(FTP_USER, FTP_PASS)
+            
+            # Forzamos la codificación a UTF-8 para soportar eñes o tildes en rutas futuras
+            ftp.encoding = 'utf-8' 
             print("✅ Autenticación exitosa.")
             
-            # 2. Navegar y crear la ruta destino (ej: in/gestiones/07_2026)
+            # 2. Navegar y crear la ruta destino (ej: in/gestiones/08_2026)
             ftp.cwd('/') # Volver a la raíz por seguridad
             crear_directorios_ftp(ftp, ruta_ftp_destino)
             
