@@ -6,10 +6,14 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.security import check_password_hash
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 # Importamos los modelos y funciones de BD (NUEVO: Se agregó VicidialConfig)
 from config.database import db, User, LayoutConfig, VicidialConfig, init_db_and_admins
-from core.extractor import ejecutar_extraccion_hites
+
+# IMPORTANTE: Importamos las nuevas funciones del extractor
+from core.extractor import ejecutar_extraccion_hites, tarea_recolector_nocturno, tarea_inyector_semanal
 
 app = Flask(__name__)
 
@@ -51,6 +55,52 @@ limiter = Limiter(
 )
 
 init_db_and_admins(app)
+
+# ==========================================
+# CEREBRO AUTOMÁTICO (SCHEDULER)
+# ==========================================
+scheduler = BackgroundScheduler()
+
+def actualizar_cronogramas():
+    """Lee la base de datos y reprograma los inyectores FTP según lo configurado en el Panel Vue"""
+    with app.app_context():
+        # 1. Limpiamos los trabajos FTP anteriores por si cambiaste la hora en el panel
+        for job in scheduler.get_jobs():
+            if job.id.startswith('ftp_inyector_'):
+                job.remove()
+                
+        # 2. Buscamos todas las configuraciones de mandantes guardadas
+        layouts = LayoutConfig.query.all()
+        for layout in layouts:
+            cliente = layout.cliente
+            datos = layout.columnas if isinstance(layout.columnas, dict) else {}
+            sftp = datos.get('sftp', {})
+            
+            dia_str = sftp.get('dia', 'Viernes')
+            hora_str = sftp.get('hora', '21:00')
+            
+            # Traductor de días del Panel Vue a formato Cron del Servidor
+            dias_map = {
+                'Lunes': 'mon', 'Martes': 'tue', 'Miercoles': 'wed',
+                'Jueves': 'thu', 'Viernes': 'fri', 'Diario': 'mon-fri'
+            }
+            dia_cron = dias_map.get(dia_str, 'fri')
+            
+            try:
+                hora, minuto = hora_str.split(':')
+                job_id = f'ftp_inyector_{cliente}'
+                
+                # Agregamos el trabajo inyector al reloj interno
+                scheduler.add_job(
+                    func=tarea_inyector_semanal,
+                    trigger=CronTrigger(day_of_week=dia_cron, hour=hora, minute=minuto),
+                    args=[cliente],
+                    id=job_id,
+                    replace_existing=True
+                )
+                print(f"⏰ [RELOJ] Inyección de {cliente.upper()} programada: {dia_str} a las {hora_str}")
+            except Exception as e:
+                print(f"❌ [RELOJ] Error programando {cliente}: {e}")
 
 # ==========================================
 # RUTAS API (PUNTOS DE CONEXIÓN PARA VUE)
@@ -175,6 +225,9 @@ def guardar_layout(cliente):
             
         db.session.commit()
         
+        # ¡NUEVA MAGIA!: Actualizamos el reloj interno en tiempo real sin reiniciar el servidor
+        actualizar_cronogramas()
+        
         return jsonify({
             "success": True, 
             "message": f"¡Motor SQL y SFTP para {cliente.upper()} guardado con éxito!"
@@ -262,5 +315,25 @@ def descargar_ultimo(cliente):
         print(f"❌ Error al intentar descargar el archivo: {str(e)}")
         return jsonify({"success": False, "message": f"Error interno: {str(e)}"}), 500
 
+# ==========================================
+# INICIO DEL SERVIDOR Y CRONOGRAMAS
+# ==========================================
+
 if __name__ == '__main__':
+    with app.app_context():
+        # 1. Tarea Fija: Descarga de Vicidial todos los días a las 02:00 AM
+        scheduler.add_job(
+            func=tarea_recolector_nocturno,
+            trigger=CronTrigger(hour=2, minute=0),
+            id='recolector_nocturno_diario',
+            replace_existing=True
+        )
+        print("⏰ [RELOJ] Recolector Nocturno programado a las 02:00 AM todos los días.")
+        
+        # 2. Leer la BD para cargar las inyecciones FTP configuradas
+        actualizar_cronogramas()
+        
+        # 3. Arrancar el reloj en segundo plano
+        scheduler.start()
+        
     app.run(host='0.0.0.0', port=5000)
