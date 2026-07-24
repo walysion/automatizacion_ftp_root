@@ -35,7 +35,6 @@ logging.basicConfig(
     encoding="utf-8"
 )
 
-# Conexión a PostgreSQL (usando las variables del Docker)
 DB_USER = os.getenv('DB_USER', 'etl_admin')
 DB_PASS = os.getenv('DB_PASSWORD', 'etl_password_segura_2026')
 DB_HOST = os.getenv('DB_HOST', 'db')
@@ -45,7 +44,6 @@ POSTGRES_URI = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 engine = create_engine(POSTGRES_URI)
 
 def log_print(msg, type="info"):
-    """Imprime en consola y guarda en el log físico"""
     print(f"[ROBOT v29.0] {msg}")
     if type == "error":
         logging.error(msg)
@@ -62,11 +60,10 @@ def get_date_list(start_str, end_str):
     return dates
 
 # =================================================================
-# TAREA A: EL RECOLECTOR NOCTURNO (Extrae y Guarda en BD Cruda)
+# TAREA A: EL RECOLECTOR NOCTURNO
 # =================================================================
 def tarea_recolector_nocturno(start_date=None, end_date=None):
     if not start_date or not end_date:
-        # Por defecto, descarga el día anterior para no saturar
         ayer = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
         start_date = ayer
         end_date = ayer
@@ -97,9 +94,18 @@ def tarea_recolector_nocturno(start_date=None, end_date=None):
     log_print(f"Iniciando RECOLECTOR para {len(date_list)} días ({start_date} al {end_date})...")
 
     try:
-        # Limpiar descargas previas crudas
+        # Aseguramos la existencia de la tabla antes de hacer nada
+        with engine.begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS gestiones_raw (
+                    fecha TEXT, gestor TEXT, rut_cliente TEXT, telefono TEXT, 
+                    cod_gestion TEXT, monto_compromiso TEXT, fecha_compromiso TEXT, 
+                    campaign TEXT, glosa TEXT
+                )
+            """))
+
         for f in glob.glob(os.path.join(DOWNLOAD_DIR, "*.csv")):
-            if not "GESTIONES" in f: # Protegemos los archivos inyectados finales
+            if not "GESTIONES" in f: 
                 try: os.remove(f)
                 except: pass
 
@@ -128,7 +134,6 @@ def tarea_recolector_nocturno(start_date=None, end_date=None):
         driver.execute_cdp_cmd('Page.setDownloadBehavior', params)
         wait = WebDriverWait(driver, 30)
 
-        # LOGIN VICIDIAL
         log_print(f"Abriendo página de login: {login_url}")
         driver.get(login_url)
         time.sleep(2) 
@@ -146,7 +151,6 @@ def tarea_recolector_nocturno(start_date=None, end_date=None):
         time.sleep(3)
         log_print("Sesión iniciada correctamente.")
 
-        # BUCLE ITERATIVO DE DESCARGA
         for target_date in date_list:
             log_print(f"Descargando datos crudos: Día {target_date}")
 
@@ -165,10 +169,9 @@ def tarea_recolector_nocturno(start_date=None, end_date=None):
                 time.sleep(1)
                 
             if not downloaded_file:
-                log_print(f"No se generó reporte para {target_date}.", "error")
+                log_print(f"No se generó reporte para {target_date}.")
                 continue
 
-            # LIMPIEZA BÁSICA CON PANDAS
             try:
                 df = pd.read_csv(downloaded_file, sep=None, engine='python', encoding='latin1', dtype=str, on_bad_lines='skip')
             except:
@@ -179,7 +182,6 @@ def tarea_recolector_nocturno(start_date=None, end_date=None):
 
             df.columns = [str(c).lower().strip().replace(" ", "_").replace(".", "") for c in df.columns]
             
-            # ¡SOLUCIÓN APLICADA!: Quitamos 'codigo' y 'gestion' para que no pise el 'status' (letras)
             renames = {
                 'fono': 'telefono', 'telefono_cliente': 'telefono', 'phone_number': 'telefono',
                 'rut': 'rut_cliente', 'status': 'cod_gestion',
@@ -199,7 +201,6 @@ def tarea_recolector_nocturno(start_date=None, end_date=None):
                 df = df.dropna(subset=['fecha'])
                 df['fecha'] = df['fecha'].dt.strftime('%Y-%m-%d %H:%M:%S')
 
-            # INSERCIÓN EN POSTGRESQL (NUEVA TABLA: gestiones_raw)
             cols_db = ['fecha', 'gestor', 'rut_cliente', 'telefono', 'cod_gestion', 'monto_compromiso', 'fecha_compromiso', 'campaign', 'glosa']
             cols_a_insertar = [c for c in df.columns if c in cols_db]
             df_final = df[cols_a_insertar]
@@ -208,13 +209,6 @@ def tarea_recolector_nocturno(start_date=None, end_date=None):
             fecha_fin = f"{target_date} 23:59:59"
 
             with engine.begin() as conn:
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS gestiones_raw (
-                        fecha TEXT, gestor TEXT, rut_cliente TEXT, telefono TEXT, 
-                        cod_gestion TEXT, monto_compromiso TEXT, fecha_compromiso TEXT, 
-                        campaign TEXT, glosa TEXT
-                    )
-                """))
                 conn.execute(text("DELETE FROM gestiones_raw WHERE fecha >= :ini AND fecha <= :fin"), {"ini": fecha_ini, "fin": fecha_fin})
                 df_final.to_sql("gestiones_raw", conn, if_exists="append", index=False)
 
@@ -242,7 +236,16 @@ def tarea_recolector_nocturno(start_date=None, end_date=None):
 def tarea_inyector_semanal(cliente):
     log_print(f"Iniciando TAREA DE INYECCIÓN SQL para cliente: {cliente.upper()}")
     try:
-        # 1. Obtener la consulta SQL y config SFTP desde la Base de Datos
+        # Re-Aseguramos que la tabla exista justo antes de inyectar por si la BD se reinició
+        with engine.begin() as conn:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS gestiones_raw (
+                    fecha TEXT, gestor TEXT, rut_cliente TEXT, telefono TEXT, 
+                    cod_gestion TEXT, monto_compromiso TEXT, fecha_compromiso TEXT, 
+                    campaign TEXT, glosa TEXT
+                )
+            """))
+
         with engine.connect() as conn:
             res = conn.execute(text("SELECT columnas FROM layout_configs WHERE cliente = :cli"), {"cli": cliente}).fetchone()
             if not res or not res[0]:
@@ -251,39 +254,28 @@ def tarea_inyector_semanal(cliente):
 
             config_json = res[0] if isinstance(res[0], dict) else json.loads(res[0])
             consulta_sql = config_json.get('consulta_sql', '')
-            prefijo = config_json.get('prefijo_campana', '')
             sftp_config = config_json.get('sftp', {})
 
         if not consulta_sql:
             log_print(f"⚠️ Consulta SQL vacía para {cliente}. Abortando.", "error")
             return False
 
-        # Si el usuario definió un prefijo, lo aplicamos envolviendo su SQL
-        if prefijo:
-            # Reemplazamos gestiones_raw temporalmente en la query si aplica
-            sql_final = f"SELECT * FROM ({consulta_sql}) AS subquery WHERE campaign LIKE '{prefijo}%'"
-            # Si el usuario no seleccionó campaign en su layout, usamos la query original y advertimos
-            if "campaign" not in consulta_sql.lower():
-                sql_final = consulta_sql
-                log_print("Nota: El layout SQL no incluye la columna 'campaign', no se pudo filtrar por prefijo en la capa final.")
-        else:
-            sql_final = consulta_sql
-
-        log_print("⚙️ Ejecutando Motor SQL de transformación...")
+        log_print("⚙️ Ejecutando Motor SQL de transformación (Código puro del usuario)...")
         
-        # 2. Ejecutar SQL crudo y cargar directo a Pandas (Magia pura)
-        df_sql = pd.read_sql(sql_final, engine)
+        # ¡EL ROBOT YA NO METE MANO!: Ejecuta tu SQL tal y como lo escribiste
+        with engine.connect() as conn:
+            df_sql = pd.read_sql(text(consulta_sql), conn)
         
         if df_sql.empty:
             log_print(f"⚠️ El Motor SQL no arrojó resultados para {cliente}. No se enviará FTP.")
             return True
 
-        # 3. Exportar a CSV
+        # Exportar a CSV
         fecha_str = datetime.now().strftime("%d%m%Y")
         archivo_csv_ftp = os.path.join(DOWNLOAD_DIR, f"{cliente.upper()}_GESTIONES_{fecha_str}.csv")
         df_sql.to_csv(archivo_csv_ftp, index=False, sep=',')
         
-        # 4. Inyectar al FTP usando el código resiliente
+        # Inyectar al FTP
         mes_anio = datetime.now().strftime("%m_%Y")
         ruta_ftp_destino = sftp_config.get('ruta', f'in/gestiones/{mes_anio}')
         
@@ -303,20 +295,17 @@ def tarea_inyector_semanal(cliente):
         return False
 
 # =================================================================
-# EJECUCIÓN MANUAL DESDE VUE (Dispara ambas tareas en cadena)
+# EJECUCIÓN MANUAL DESDE VUE
 # =================================================================
 def ejecutar_extraccion_hites():
-    """Función para el Botón Azul del Panel. Corre el día actual y lo inyecta."""
     hoy = datetime.now().strftime("%Y-%m-%d")
     log_print("--- INICIANDO EJECUCIÓN MANUAL A DEMANDA ---")
     
-    # 1. Recolectar datos de hoy
     exito_rec, msg_rec = tarea_recolector_nocturno(start_date=hoy, end_date=hoy)
     
     if not exito_rec:
         return False, f"Error en recolección: {msg_rec}"
         
-    # 2. Forzar inyección inmediata de Hites (por ser el botón de prueba)
     exito_iny = tarea_inyector_semanal("hites")
     
     if exito_iny:
