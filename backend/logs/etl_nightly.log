@@ -1253,3 +1253,24 @@ WHERE LEFT(campaign, 3) = 'HIT') AS subquery WHERE campaign LIKE 'HIT%%%%']
 2026-07-24 15:26:17,549 | INFO | 🌐 Inyectando archivo procesado de HITES al FTP en in/gestiones/mes_año...
 2026-07-24 15:26:17,657 | INFO | ✅ ¡Inyección FTP exitosa para hites (692 registros)!
 2026-07-24 15:26:17,658 | INFO | 172.19.0.4 - - [24/Jul/2026 15:26:17] "POST /api/ejecutar-etl HTTP/1.1" 200 -
+2026-07-24 15:58:54,664 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-24 15:58:54,664 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-24 16:40:06,063 | INFO | --- INICIANDO EJECUCIÓN MANUAL A DEMANDA ---
+2026-07-24 16:40:06,082 | INFO | Iniciando RECOLECTOR para 1 días (2026-07-24 al 2026-07-24)...
+2026-07-24 16:40:06,304 | INFO | Abriendo página de login: https://vicieffectiva.telexpress.cl/sistema_gestion/index.php
+2026-07-24 16:40:08,427 | INFO | 📸 [FOTO TOMADA]: 1_pantalla_antes_login.png
+2026-07-24 16:40:12,919 | INFO | 📸 [FOTO TOMADA]: 2_pantalla_despues_login.png
+2026-07-24 16:40:12,920 | INFO | Sesión iniciada correctamente.
+2026-07-24 16:40:12,920 | INFO | Descargando datos crudos: Día 2026-07-24
+2026-07-24 16:40:28,765 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-24.png
+2026-07-24 16:40:28,765 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-24 16:40:28,878 | INFO | Día 2026-07-24 guardado en RAW BD (2,945 filas).
+2026-07-24 16:40:28,879 | INFO | Recolector finalizado. 2945 filas procesadas en 22.82s.
+2026-07-24 16:40:28,939 | INFO | Iniciando TAREA DE INYECCIÓN SQL para cliente: HITES
+2026-07-24 16:40:28,941 | INFO | ⚙️ Ejecutando Motor SQL de transformación (Código puro del usuario)...
+2026-07-24 16:40:28,953 | INFO | 🌐 Inyectando archivo procesado de HITES al FTP en in/gestiones/mes_año...
+2026-07-24 16:40:29,056 | INFO | ✅ ¡Inyección FTP exitosa para hites (1004 registros)!
+2026-07-24 16:40:29,058 | INFO | 172.19.0.4 - - [24/Jul/2026 16:40:29] "POST /api/ejecutar-etl HTTP/1.1" 200 -

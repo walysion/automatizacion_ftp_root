@@ -1,5 +1,6 @@
 import os
 import glob
+from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS  # ⚠️ Necesario para que Vue y Flask conversen
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -9,7 +10,7 @@ from werkzeug.security import check_password_hash
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-# Importamos los modelos y funciones de BD (NUEVO: Se agregó VicidialConfig)
+# Importamos los modelos y funciones de BD
 from config.database import db, User, LayoutConfig, VicidialConfig, init_db_and_admins
 
 # IMPORTANTE: Importamos las nuevas funciones del extractor
@@ -57,16 +58,49 @@ limiter = Limiter(
 init_db_and_admins(app)
 
 # ==========================================
-# CEREBRO AUTOMÁTICO (SCHEDULER)
+# CEREBRO AUTOMÁTICO (SCHEDULER Y ORQUESTADOR)
 # ==========================================
 scheduler = BackgroundScheduler()
 
+def orquestador_semanal(cliente):
+    """
+    EL MODELO HÍBRIDO: Calcula 7 días hacia atrás (Sábado a Viernes),
+    descarga día por día, y si todo sale bien, inyecta al FTP.
+    """
+    print(f"🚀 [ORQUESTADOR] Iniciando proceso semanal automático para {cliente.upper()}...")
+    
+    # 1. Calcular fechas: Hoy (Viernes) y Hace 6 días (Sábado pasado)
+    hoy = datetime.now()
+    fecha_fin = hoy.strftime("%Y-%m-%d")
+    fecha_inicio = (hoy - timedelta(days=6)).strftime("%Y-%m-%d")
+    
+    print(f"📅 [ORQUESTADOR] Calculado rango de extracción: {fecha_inicio} al {fecha_fin}")
+    
+    # 2. Enviar al Recolector a buscar los datos a Vicidial
+    exito_rec, msg_rec = tarea_recolector_nocturno(start_date=fecha_inicio, end_date=fecha_fin)
+    
+    if not exito_rec:
+        print(f"❌ [ORQUESTADOR] Operación abortada. Falló la recolección: {msg_rec}")
+        return False
+        
+    print(f"✅ [ORQUESTADOR] Recolección consolidada con éxito. Levantando Inyector FTP...")
+    
+    # 3. Si la recolección fue exitosa, inyectar el consolidado al FTP
+    exito_iny = tarea_inyector_semanal(cliente)
+    
+    if exito_iny:
+        print(f"🏆 [ORQUESTADOR] ¡Éxito total! Archivo consolidado de {cliente.upper()} inyectado correctamente.")
+        return True
+    else:
+        print(f"❌ [ORQUESTADOR] La recolección terminó, pero el envío al FTP falló.")
+        return False
+
 def actualizar_cronogramas():
-    """Lee la base de datos y reprograma los inyectores FTP según lo configurado en el Panel Vue"""
+    """Lee la base de datos y reprograma el ORQUESTADOR según lo configurado en el Panel Vue"""
     with app.app_context():
-        # 1. Limpiamos los trabajos FTP anteriores por si cambiaste la hora en el panel
+        # 1. Limpiamos los trabajos anteriores por si cambiaste la hora en el panel
         for job in scheduler.get_jobs():
-            if job.id.startswith('ftp_inyector_'):
+            if job.id.startswith('etl_semanal_'):
                 job.remove()
                 
         # 2. Buscamos todas las configuraciones de mandantes guardadas
@@ -88,17 +122,17 @@ def actualizar_cronogramas():
             
             try:
                 hora, minuto = hora_str.split(':')
-                job_id = f'ftp_inyector_{cliente}'
+                job_id = f'etl_semanal_{cliente}'
                 
-                # Agregamos el trabajo inyector al reloj interno
+                # Agregamos el Orquestador Semanal al reloj interno
                 scheduler.add_job(
-                    func=tarea_inyector_semanal,
+                    func=orquestador_semanal,
                     trigger=CronTrigger(day_of_week=dia_cron, hour=hora, minute=minuto),
                     args=[cliente],
                     id=job_id,
                     replace_existing=True
                 )
-                print(f"⏰ [RELOJ] Inyección de {cliente.upper()} programada: {dia_str} a las {hora_str}")
+                print(f"⏰ [RELOJ] Orquestador ETL Híbrido para {cliente.upper()} programado: {dia_str} a las {hora_str}")
             except Exception as e:
                 print(f"❌ [RELOJ] Error programando {cliente}: {e}")
 
@@ -178,7 +212,7 @@ def obtener_layout(cliente):
 # RUTAS DEL MOTOR ETL
 # ==========================================
 
-# 5. Ruta para que Vue dispare el Robot Hites
+# 5. Ruta para que Vue dispare el Robot Hites MANUALMENTE
 @app.route('/api/ejecutar-etl', methods=['POST'])
 @login_required
 def ejecutar_etl():
@@ -321,19 +355,10 @@ def descargar_ultimo(cliente):
 
 if __name__ == '__main__':
     with app.app_context():
-        # 1. Tarea Fija: Descarga de Vicidial todos los días a las 02:00 AM
-        scheduler.add_job(
-            func=tarea_recolector_nocturno,
-            trigger=CronTrigger(hour=2, minute=0),
-            id='recolector_nocturno_diario',
-            replace_existing=True
-        )
-        print("⏰ [RELOJ] Recolector Nocturno programado a las 02:00 AM todos los días.")
-        
-        # 2. Leer la BD para cargar las inyecciones FTP configuradas
+        # Inicializamos los cronogramas dinámicos (El Orquestador)
         actualizar_cronogramas()
         
-        # 3. Arrancar el reloj en segundo plano
+        # Arrancamos el reloj en segundo plano
         scheduler.start()
         
     app.run(host='0.0.0.0', port=5000)
