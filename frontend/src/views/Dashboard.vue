@@ -76,7 +76,6 @@ const descargarUltimoArchivo = async () => {
 // ==========================================
 const mandanteActivo = ref('hites');
 
-// NUEVO: Variables del Camino C con tu código SQL de Access traducido a PostgreSQL
 const prefijoCampana = ref('HIT');
 const consultaSQL = ref(`SELECT
     LEFT(COALESCE(rut_cliente, ''), 8) AS rut_sin_digito,
@@ -105,10 +104,14 @@ const consultaSQL = ref(`SELECT
     '' AS mail_contacto
 FROM gestiones;`);
 
+// Array para manejar los checkboxes de los días
+const diasSeleccionados = ref(['fri']);
+
 const configuracionSFTP = ref({
-    dia: 'Viernes',
+    dia: 'fri',
     hora: '21:00',
-    ruta: 'in/gestiones/mes_año'
+    ruta: 'gestiones/mes_año',
+    dia_inicio_ciclo: 5 // 0=Lunes, 1=Martes ... 5=Sábado, 6=Domingo
 });
 
 const guardandoLayout = ref(false);
@@ -125,12 +128,38 @@ const cargarConfiguraciones = async () => {
         // 1. Cargar Motor SQL y SFTP del mandante
         const respuestaLayout = await axios.get(`/api/layout/${mandanteActivo.value}`);
         if (respuestaLayout.data.success && respuestaLayout.data.prefijo_campana) {
-            // Si ya existe configuración en la base de datos, la carga
             prefijoCampana.value = respuestaLayout.data.prefijo_campana;
             consultaSQL.value = respuestaLayout.data.consulta_sql;
-            configuracionSFTP.value = respuestaLayout.data.sftp;
+            
+            const sftpDB = respuestaLayout.data.sftp;
+            configuracionSFTP.value.hora = sftpDB.hora || '21:00';
+            configuracionSFTP.value.ruta = sftpDB.ruta || 'gestiones/mes_año';
+            // Cargamos el nuevo valor, si no existe lo seteamos en Sábado (5) por defecto
+            configuracionSFTP.value.dia_inicio_ciclo = sftpDB.dia_inicio_ciclo !== undefined ? sftpDB.dia_inicio_ciclo : 5;
+            
+            // Traductor Inverso: De BD antigua a Checkboxes
+            let rawDia = sftpDB.dia || 'fri';
+            const diasMapReverse = {
+                'Todos los días LUNES': ['mon'],
+                'Todos los días MARTES': ['tue'],
+                'Todos los días MIÉRCOLES': ['wed'],
+                'Todos los días JUEVES': ['thu'],
+                'Todos los días VIERNES': ['fri'],
+                'Todos los días SÁBADO': ['sat'],
+                'Todos los días DOMINGO': ['sun'],
+                'Todos los días (L-V)': ['mon', 'tue', 'wed', 'thu', 'fri'],
+                'Todos los días (L-D)': ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+                'Diario': ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'],
+                'mon-fri': ['mon', 'tue', 'wed', 'thu', 'fri'],
+                'mon-sun': ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+            };
+
+            if (diasMapReverse[rawDia]) {
+                diasSeleccionados.value = diasMapReverse[rawDia];
+            } else {
+                diasSeleccionados.value = rawDia.split(',');
+            }
         }
-        // Si no hay configuración previa, deja los valores por defecto que definimos arriba.
 
         // 2. Cargar Accesos de Vicidial
         const respuestaVici = await axios.get('/api/config/vicidial');
@@ -144,7 +173,6 @@ const cargarConfiguraciones = async () => {
     }
 };
 
-// Carga las configuraciones apenas se abre la pantalla
 onMounted(() => {
     cargarConfiguraciones();
 });
@@ -154,13 +182,25 @@ const guardarMotorSQL = async () => {
     guardandoLayout.value = true;
     mensajeLayout.value = '';
     
+    // Convertir el array de checkboxes a string (ej: 'mon,wed,fri')
+    let cronString = diasSeleccionados.value.join(',');
+    
+    // Embellecer rangos completos para el backend
+    if (diasSeleccionados.value.length === 5 && !diasSeleccionados.value.includes('sat') && !diasSeleccionados.value.includes('sun')) {
+        cronString = 'mon-fri';
+    } else if (diasSeleccionados.value.length === 7) {
+        cronString = 'mon-sun';
+    }
+
+    configuracionSFTP.value.dia = cronString;
+
     try {
         await axios.post(`/api/layout/${mandanteActivo.value}/guardar`, {
             prefijo_campana: prefijoCampana.value,
             consulta_sql: consultaSQL.value,
             sftp: configuracionSFTP.value
         });
-        mensajeLayout.value = `✅ Motor SQL y SFTP guardados para ${mandanteActivo.value.toUpperCase()}.`;
+        mensajeLayout.value = `✅ Configuración maestra guardada para ${mandanteActivo.value.toUpperCase()}.`;
     } catch (error) {
         mensajeLayout.value = '❌ Error al guardar en la base de datos';
     } finally {
@@ -169,7 +209,6 @@ const guardarMotorSQL = async () => {
     }
 };
 
-// Guardar las credenciales de Vicidial
 const guardarVicidial = async () => {
     guardandoVici.value = true;
     mensajeVici.value = '';
@@ -197,7 +236,7 @@ const guardarVicidial = async () => {
         </div>
     </nav>
 
-    <!-- Contenedor Principal (Grid para las dos secciones) -->
+    <!-- Contenedor Principal -->
     <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
         
         <!-- COLUMNA IZQUIERDA: ROBOT, SFTP Y VICIDIAL -->
@@ -224,7 +263,6 @@ const guardarVicidial = async () => {
                         <span v-else>▶️ INICIAR ROBOT {{ mandanteActivo.toUpperCase() }}</span>
                     </button>
 
-                    <!-- NUEVO BOTÓN DE DESCARGA -->
                     <button 
                         @click="descargarUltimoArchivo" 
                         :disabled="descargando || ejecutando"
@@ -272,31 +310,52 @@ const guardarVicidial = async () => {
             <!-- TARJETA 3: CONFIGURACIÓN SFTP -->
             <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                 <h3 @click="showSFTP = !showSFTP" style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between;">
-                    🕒 Horario Inyección SFTP <span>{{ showSFTP ? '🔼' : '🔽' }}</span>
+                    🕒 Configuración y Horario <span>{{ showSFTP ? '🔼' : '🔽' }}</span>
                 </h3>
                 
                 <div v-show="showSFTP">
-                    <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Frecuencia de entrega:</label>
-                    <select v-model="configuracionSFTP.dia" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; background: white;">
-                        <option value="Lunes">Todos los días LUNES</option>
-                        <option value="Martes">Todos los días MARTES</option>
-                        <option value="Miercoles">Todos los días MIÉRCOLES</option>
-                        <option value="Jueves">Todos los días JUEVES</option>
-                        <option value="Viernes">Todos los días VIERNES</option>
-                        <option value="Diario">Todos los días (L-V)</option>
-                    </select>
+                    
+                    <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 10px;">Días de Ejecución (FTP):</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #dee2e6;">
+                        <label style="cursor: pointer; font-size: 14px;"><input type="checkbox" value="mon" v-model="diasSeleccionados"> Lunes</label>
+                        <label style="cursor: pointer; font-size: 14px;"><input type="checkbox" value="tue" v-model="diasSeleccionados"> Martes</label>
+                        <label style="cursor: pointer; font-size: 14px;"><input type="checkbox" value="wed" v-model="diasSeleccionados"> Miércoles</label>
+                        <label style="cursor: pointer; font-size: 14px;"><input type="checkbox" value="thu" v-model="diasSeleccionados"> Jueves</label>
+                        <label style="cursor: pointer; font-size: 14px;"><input type="checkbox" value="fri" v-model="diasSeleccionados"> Viernes</label>
+                        <label style="cursor: pointer; font-size: 14px;"><input type="checkbox" value="sat" v-model="diasSeleccionados"> Sábado</label>
+                        <label style="cursor: pointer; font-size: 14px;"><input type="checkbox" value="sun" v-model="diasSeleccionados"> Domingo</label>
+                    </div>
+
+                    <!-- AQUÍ ESTÁ LA NUEVA INTELIGENCIA: EL SELECTOR DE DÍA DE INICIO -->
+                    <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">
+                        Día de Inicio de Campaña (Calculadora Automática):
+                    </label>
+                    <div style="margin-bottom: 15px;">
+                        <select v-model="configuracionSFTP.dia_inicio_ciclo" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; background: white; font-weight: bold;">
+                            <option :value="0">Lunes</option>
+                            <option :value="1">Martes</option>
+                            <option :value="2">Miércoles</option>
+                            <option :value="3">Jueves</option>
+                            <option :value="4">Viernes</option>
+                            <option :value="5">Sábado</option>
+                            <option :value="6">Domingo</option>
+                        </select>
+                        <p style="font-size: 12px; color: #6c757d; line-height: 1.3; margin-top: 5px;">
+                            El robot calculará matemáticamente los días de retroceso. Si marcas "Sábado", y hoy es martes, descargará exactamente desde el sábado hasta hoy. Ya no debes ajustar números.
+                        </p>
+                    </div>
 
                     <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Hora límite de carga:</label>
                     <input type="time" v-model="configuracionSFTP.hora" style="width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
 
                     <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Ruta propuesta SFTP:</label>
-                    <input type="text" v-model="configuracionSFTP.ruta" placeholder="Ej: in/gestiones/mes_año" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
+                    <input type="text" v-model="configuracionSFTP.ruta" placeholder="Ej: gestiones/mes_año" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;" />
                 </div>
             </div>
 
         </div>
 
-        <!-- COLUMNA DERECHA: MOTOR SQL (CAMINO C) -->
+        <!-- COLUMNA DERECHA: MOTOR SQL -->
         <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
             <h3 @click="showMotorSQL = !showMotorSQL" style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between;">
                 📝 Motor de Procesamiento SQL <span>{{ showMotorSQL ? '🔼' : '🔽' }}</span>
@@ -336,7 +395,7 @@ const guardarVicidial = async () => {
                     <label style="font-size: 14px; font-weight: bold; color: #495057; display: block; margin-bottom: 5px;">
                         💻 Consulta PostgreSQL de Transformación (El Layout)
                     </label>
-                    <p style="font-size: 12px; color: #6c757d; margin-top: 0; margin-bottom: 5px;">Escribe el SELECT para armar tu CSV final. Los nombres de las columnas que pongas aquí serán las cabeceras exactas del CSV. La tabla base se llama <strong>gestiones</strong>.</p>
+                    <p style="font-size: 12px; color: #6c757d; margin-top: 0; margin-bottom: 5px;">Escribe el SELECT para armar tu CSV final. Los nombres de las columnas que pongas aquí serán las cabeceras exactas del CSV. La tabla base se llama <strong>gestiones_raw</strong>.</p>
                     
                     <textarea 
                         v-model="consultaSQL"
@@ -351,7 +410,7 @@ const guardarVicidial = async () => {
                     :disabled="guardandoLayout || !consultaSQL.trim()"
                     style="width: 100%; padding: 12px; background: #ffc107; color: #000; border: none; border-radius: 4px; font-weight: bold; font-size: 16px; cursor: pointer;"
                 >
-                    {{ guardandoLayout ? 'Guardando en BD...' : '💾 Guardar SQL y Configuración SFTP' }}
+                    {{ guardandoLayout ? 'Guardando en BD...' : '💾 Guardar Configuración de Mandante' }}
                 </button>
 
                 <!-- Mensaje de éxito/error -->

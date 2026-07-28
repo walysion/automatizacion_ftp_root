@@ -1363,3 +1363,12 @@ WHERE LEFT(campaign, 3) = 'HIT') AS subquery WHERE campaign LIKE 'HIT%%%%']
 2026-07-28 19:58:40,049 | INFO | ✅ ¡Inyección FTP exitosa para hites (2391 registros)!
 2026-07-28 19:58:40,051 | INFO | 172.19.0.4 - - [28/Jul/2026 19:58:40] "POST /api/ejecutar-etl HTTP/1.1" 200 -
 2026-07-28 19:58:45,109 | INFO | 172.19.0.4 - - [28/Jul/2026 19:58:45] "[33mGET /api/descargar-ultimo/hites HTTP/1.1[0m" 404 -
+2026-07-28 21:31:41,791 | INFO | 172.19.0.4 - - [28/Jul/2026 21:31:41] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-28 21:31:41,846 | INFO | 172.19.0.4 - - [28/Jul/2026 21:31:41] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-28 21:32:53,762 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-28 21:32:53,762 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-28 21:49:43,225 | INFO | 172.19.0.4 - - [28/Jul/2026 21:49:43] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-28 21:49:43,266 | INFO | 172.19.0.4 - - [28/Jul/2026 21:49:43] "GET /api/config/vicidial HTTP/1.1" 200 -
