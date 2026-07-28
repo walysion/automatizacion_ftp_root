@@ -2,19 +2,45 @@ import os
 import time
 from datetime import datetime
 import ftplib
+import paramiko
 
-# ==========================================
-# CREDENCIALES DEL SERVIDOR FTP DE PRUEBAS
-# ==========================================
-FTP_HOST = "ftp.effectivaspa.cl"
-FTP_PORT = 21
-FTP_USER = "reportes_root@effectivaspa.cl"
-FTP_PASS = "Reportes1650/"
+# =================================================================
+# CREDENCIALES Y CONFIGURACIÓN POR DEFECTO (SFTP HITES)
+# =================================================================
+FTP_HOST = os.getenv("FTP_HOST", "sftp.servicioshites.cl")
+FTP_PORT = int(os.getenv("FTP_PORT", "22"))
+FTP_USER = os.getenv("FTP_USER", "efectiva")
+FTP_PASS = os.getenv("FTP_PASSWORD", "5aVsb5f%Y@")
+PROTOCOL_DEFAULT = os.getenv("FTP_PROTOCOL", "SFTP")  # SFTP o FTP
 
-def crear_directorios_ftp(ftp, ruta):
+# =================================================================
+# FUNCIONES AUXILIARES DE CREACIÓN DE DIRECTORIOS
+# =================================================================
+
+def crear_directorios_sftp(sftp, ruta):
     """
-    Navega por la ruta en el FTP y crea las carpetas si no existen.
-    Ejemplo: Si la ruta es 'in/gestiones/08_2026', entra a 'in', luego a 'gestiones', etc.
+    Navega de forma recursiva por la ruta en el servidor SFTP (Paramiko)
+    y crea las carpetas que no existan.
+    """
+    carpetas = ruta.strip('/').split('/')
+    for carpeta in carpetas:
+        if not carpeta:
+            continue
+        try:
+            sftp.chdir(carpeta)
+        except IOError:
+            print(f"📁 [SFTP] Creando nueva carpeta: {carpeta}")
+            try:
+                sftp.mkdir(carpeta)
+                sftp.chdir(carpeta)
+            except Exception as e:
+                print(f"⚠️ [SFTP] No se pudo crear la carpeta '{carpeta}': {e}")
+                raise e
+
+def crear_directorios_ftp_estandar(ftp, ruta):
+    """
+    Navega de forma recursiva por la ruta en un servidor FTP estándar (ftplib)
+    y crea las carpetas que no existan.
     """
     carpetas = ruta.strip('/').split('/')
     for carpeta in carpetas:
@@ -23,75 +49,153 @@ def crear_directorios_ftp(ftp, ruta):
         try:
             ftp.cwd(carpeta)
         except ftplib.error_perm:
-            # Si da error, es porque la carpeta no existe, así que la creamos
-            print(f"📁 Creando nueva carpeta en el servidor FTP: {carpeta}")
+            print(f"📁 [FTP] Creando nueva carpeta: {carpeta}")
             try:
                 ftp.mkd(carpeta)
                 ftp.cwd(carpeta)
             except Exception as e:
-                print(f"⚠️ No se pudo crear la carpeta {carpeta}. Error de permisos: {e}")
+                print(f"⚠️ [FTP] No se pudo crear la carpeta '{carpeta}': {e}")
                 raise e
 
-def inyectar_ftp_resiliente(cliente, ruta_archivo_local, ruta_ftp_destino, max_reintentos=100):
+# =================================================================
+# MOTORES DE SUBIDA INDIVIDUALES
+# =================================================================
+
+def _subir_por_sftp(host, port, user, password, ruta_local, ruta_destino):
     """
-    Sube el archivo REAL al FTP del mandante usando ftplib.
-    Si hay una caída de internet o luz, el script se queda "dormido" 
-    y vuelve a intentar hasta lograrlo, garantizando la entrega.
+    Ejecuta la transferencia cifrada por SSH/SFTP mediante Paramiko.
     """
-    intento = 1
+    transport = None
+    sftp = None
+    try:
+        transport = paramiko.Transport((host, port))
+        transport.connect(username=user, password=password)
+        sftp = paramiko.SFTPClient.from_transport(transport)
+        
+        print("✅ Autenticación SFTP exitosa.")
+        
+        try:
+            sftp.chdir('/')
+        except Exception:
+            pass
+
+        crear_directorios_sftp(sftp, ruta_destino)
+        
+        nombre_archivo = os.path.basename(ruta_local)
+        print(f"⬆️ Subiendo archivo vía SFTP: {nombre_archivo} -> {ruta_destino}...")
+        
+        sftp.put(ruta_local, nombre_archivo)
+        print("🎉 ¡Inyección SFTP exitosa! Archivo depositado correctamente.")
+        return True
+    finally:
+        if sftp:
+            try:
+                sftp.close()
+            except Exception:
+                pass
+        if transport:
+            try:
+                transport.close()
+            except Exception:
+                pass
+
+def _subir_por_ftp_estandar(host, port, user, password, ruta_local, ruta_destino):
+    """
+    Ejecuta la transferencia por FTP tradicional mediante ftplib.
+    """
+    ftp = None
+    try:
+        ftp = ftplib.FTP()
+        ftp.connect(host, port, timeout=30)
+        ftp.login(user, password)
+        ftp.encoding = 'utf-8'
+        
+        print("✅ Autenticación FTP tradicional exitosa.")
+        
+        try:
+            ftp.cwd('/')
+        except Exception:
+            pass
+
+        crear_directorios_ftp_estandar(ftp, ruta_destino)
+        
+        nombre_archivo = os.path.basename(ruta_local)
+        print(f"⬆️ Subiendo archivo vía FTP: {nombre_archivo} -> {ruta_destino}...")
+        
+        with open(ruta_local, 'rb') as archivo:
+            ftp.storbinary(f'STOR {nombre_archivo}', archivo)
+            
+        ftp.quit()
+        print("🎉 ¡Inyección FTP exitosa! Archivo depositado correctamente.")
+        return True
+    finally:
+        if ftp:
+            try:
+                ftp.close()
+            except Exception:
+                pass
+
+# =================================================================
+# ORQUESTADOR Y MOTOR DE RESILIENCIA PRINCIPAL
+# =================================================================
+
+def inyectar_ftp_resiliente(cliente, ruta_archivo_local, ruta_ftp_destino, max_reintentos=100, protocolo=None, host=None, port=None, user=None, password=None):
+    """
+    Función principal invocada por el extractor ETL.
+    Admite fallback dinámico entre SFTP y FTP, validación local del archivo,
+    traducción de macros de fechas y bucle de reintentos infinitos.
+    """
+    h_host = host or FTP_HOST
+    h_port = port or FTP_PORT
+    h_user = user or FTP_USER
+    h_pass = password or FTP_PASS
     
-    # Validar que el archivo físico exista en nuestro contenedor antes de intentar subirlo
+    # Determinar el protocolo (si el puerto es 22, fuerza SFTP)
+    if protocolo is None:
+        if h_port == 22:
+            h_proto = "SFTP"
+        else:
+            h_proto = PROTOCOL_DEFAULT.upper()
+    else:
+        h_proto = protocolo.upper()
+
+    intento = 1
+
+    # 1. Validar existencia del archivo local en el contenedor
     if not os.path.exists(ruta_archivo_local):
-        print(f"❌ Error: El archivo {ruta_archivo_local} no existe localmente.")
+        print(f"❌ Error crítico: El archivo local '{ruta_archivo_local}' no existe.")
         return False
 
-    # ¡NUEVA INTELIGENCIA!: Traducción automática de fecha
-    # Si la ruta dice "mes_año", el inyector lo traduce automáticamente al mes actual.
-    # Así aseguramos que en agosto cree "08_2026", en septiembre "09_2026", etc.
+    # 2. Reemplazar plantilla 'mes_año' / 'mes_ano' por fecha dinámicamente
     mes_actual = datetime.now().strftime("%m_%Y")
     ruta_ftp_destino = ruta_ftp_destino.replace('mes_año', mes_actual).replace('mes_ano', mes_actual)
 
+    print(f"🚀 [INYECTOR] Iniciando transferencia para cliente: {cliente.upper()}")
+    print(f"📋 Protocolo: {h_proto} | Host: {h_host}:{h_port} | Ruta Destino: {ruta_ftp_destino}")
+
+    # 3. Bucle de reintentos
     while intento <= max_reintentos:
         try:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Intento {intento}: Conectando al FTP de {cliente.upper()} en {FTP_HOST}...")
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Intento {intento}/{max_reintentos}: Conectando a {h_host}...")
             
-            # 1. Iniciar conexión FTP real
-            ftp = ftplib.FTP()
-            ftp.connect(FTP_HOST, FTP_PORT, timeout=30)
-            ftp.login(FTP_USER, FTP_PASS)
-            
-            # Forzamos la codificación a UTF-8 para soportar eñes o tildes en rutas futuras
-            ftp.encoding = 'utf-8' 
-            print("✅ Autenticación exitosa.")
-            
-            # 2. Navegar y crear la ruta destino (ej: in/gestiones/08_2026)
-            ftp.cwd('/') # Volver a la raíz por seguridad
-            crear_directorios_ftp(ftp, ruta_ftp_destino)
-            
-            # 3. Preparar la subida del archivo
-            nombre_archivo = os.path.basename(ruta_archivo_local)
-            print(f"⬆️ Subiendo archivo: {nombre_archivo} hacia la ruta {ruta_ftp_destino}...")
-            
-            # Subir el archivo en modo binario (STOR)
-            with open(ruta_archivo_local, 'rb') as archivo:
-                ftp.storbinary(f'STOR {nombre_archivo}', archivo)
-            
-            # Cerrar conexión de forma limpia
-            ftp.quit()
-            print("🎉 ¡Inyección exitosa! Archivo depositado correctamente en el servidor FTP.")
-            return True
-            
-        except ftplib.all_errors as e:
-            # Atrapa cualquier error de red, caída de servidor, timeout o credenciales
-            tiempo_espera = 60 # Espera 1 minuto antes de volver a martillar
-            print(f"❌ Fallo de conexión o subida (Posible corte de red/luz): {str(e)}")
-            print(f"⏳ El robot no se rendirá. Reintentando en {tiempo_espera} segundos...")
+            exito = False
+            if h_proto == "SFTP":
+                exito = _subir_por_sftp(h_host, h_port, h_user, h_pass, ruta_archivo_local, ruta_ftp_destino)
+            elif h_proto == "FTP":
+                exito = _subir_por_ftp_estandar(h_host, h_port, h_user, h_pass, ruta_archivo_local, ruta_ftp_destino)
+            else:
+                print(f"❌ Protocolo '{h_proto}' no soportado.")
+                return False
+
+            if exito:
+                return True
+
+        except Exception as e:
+            tiempo_espera = 60
+            print(f"❌ Fallo en intento {intento} ({h_proto}): {str(e)}")
+            print(f"⏳ El robot esperará {tiempo_espera} segundos antes de reintentar...")
             time.sleep(tiempo_espera)
             intento += 1
-            
-        except Exception as e:
-            print(f"🚨 Error crítico inesperado en el sistema operativo: {str(e)}")
-            break
-            
-    print("🚨 Se agotaron los reintentos máximos. Revisar conexión a internet o vigencia de credenciales.")
+
+    print("🚨 Se agotaron los reintentos máximos configurados.")
     return False

@@ -1274,3 +1274,92 @@ WHERE LEFT(campaign, 3) = 'HIT') AS subquery WHERE campaign LIKE 'HIT%%%%']
 2026-07-24 16:40:28,953 | INFO | 🌐 Inyectando archivo procesado de HITES al FTP en in/gestiones/mes_año...
 2026-07-24 16:40:29,056 | INFO | ✅ ¡Inyección FTP exitosa para hites (1004 registros)!
 2026-07-24 16:40:29,058 | INFO | 172.19.0.4 - - [24/Jul/2026 16:40:29] "POST /api/ejecutar-etl HTTP/1.1" 200 -
+2026-07-24 16:53:54,320 | INFO | --- INICIANDO EJECUCIÓN MANUAL A DEMANDA ---
+2026-07-24 16:53:54,321 | INFO | Iniciando RECOLECTOR para 1 días (2026-07-24 al 2026-07-24)...
+2026-07-24 16:53:54,608 | INFO | Abriendo página de login: https://vicieffectiva.telexpress.cl/sistema_gestion/index.php
+2026-07-24 16:53:56,761 | INFO | 📸 [FOTO TOMADA]: 1_pantalla_antes_login.png
+2026-07-24 16:54:01,023 | INFO | 📸 [FOTO TOMADA]: 2_pantalla_despues_login.png
+2026-07-24 16:54:01,023 | INFO | Sesión iniciada correctamente.
+2026-07-24 16:54:01,023 | INFO | Descargando datos crudos: Día 2026-07-24
+2026-07-24 16:54:18,606 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-24.png
+2026-07-24 16:54:18,606 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-24 16:54:18,687 | INFO | Día 2026-07-24 guardado en RAW BD (3,111 filas).
+2026-07-24 16:54:18,687 | INFO | Recolector finalizado. 3111 filas procesadas en 24.37s.
+2026-07-24 16:54:18,751 | INFO | Iniciando TAREA DE INYECCIÓN SQL para cliente: HITES
+2026-07-24 16:54:18,752 | INFO | ⚙️ Ejecutando Motor SQL de transformación (Código puro del usuario)...
+2026-07-24 16:54:18,768 | INFO | 🌐 Inyectando archivo procesado de HITES al FTP en in/gestiones/mes_año...
+2026-07-24 16:54:18,929 | INFO | ✅ ¡Inyección FTP exitosa para hites (1060 registros)!
+2026-07-24 16:54:18,931 | INFO | 172.19.0.4 - - [24/Jul/2026 16:54:18] "POST /api/ejecutar-etl HTTP/1.1" 200 -
+2026-07-24 17:03:54,384 | INFO | 172.19.0.4 - - [24/Jul/2026 17:03:54] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-24 17:03:54,469 | INFO | 172.19.0.4 - - [24/Jul/2026 17:03:54] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-28 16:48:06,560 | INFO | 172.26.10.7 - - [28/Jul/2026 16:48:06] "[33mGET / HTTP/1.1[0m" 404 -
+2026-07-28 16:48:40,362 | INFO | 172.19.0.4 - - [28/Jul/2026 16:48:40] "POST /api/login HTTP/1.1" 200 -
+2026-07-28 16:48:40,415 | INFO | 172.19.0.4 - - [28/Jul/2026 16:48:40] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-28 16:48:40,528 | INFO | 172.19.0.4 - - [28/Jul/2026 16:48:40] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-28 16:56:51,200 | INFO | --- INICIANDO EJECUCIÓN MANUAL A DEMANDA ---
+2026-07-28 16:56:51,201 | INFO | Iniciando RECOLECTOR para 1 días (2026-07-28 al 2026-07-28)...
+2026-07-28 16:56:52,344 | INFO | Abriendo página de login: https://vicieffectiva.telexpress.cl/sistema_gestion/index.php
+2026-07-28 16:56:54,515 | INFO | 📸 [FOTO TOMADA]: 1_pantalla_antes_login.png
+2026-07-28 16:56:58,782 | INFO | 📸 [FOTO TOMADA]: 2_pantalla_despues_login.png
+2026-07-28 16:56:58,782 | INFO | Sesión iniciada correctamente.
+2026-07-28 16:56:58,782 | INFO | Descargando datos crudos: Día 2026-07-28
+2026-07-28 16:57:15,571 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-28.png
+2026-07-28 16:57:15,571 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-28 16:57:15,666 | INFO | Día 2026-07-28 guardado en RAW BD (3,182 filas).
+2026-07-28 16:57:15,666 | INFO | Recolector finalizado. 3182 filas procesadas en 24.47s.
+2026-07-28 16:57:15,736 | INFO | Iniciando TAREA DE INYECCIÓN SQL para cliente: HITES
+2026-07-28 16:57:15,738 | INFO | ⚙️ Ejecutando Motor SQL de transformación (Código puro del usuario)...
+2026-07-28 16:57:15,767 | INFO | 🌐 Inyectando archivo procesado de HITES al FTP en in/gestiones/mes_año...
+2026-07-28 16:57:16,078 | INFO | ✅ ¡Inyección FTP exitosa para hites (1868 registros)!
+2026-07-28 16:57:16,080 | INFO | 172.19.0.4 - - [28/Jul/2026 16:57:16] "POST /api/ejecutar-etl HTTP/1.1" 200 -
+2026-07-28 19:47:53,933 | INFO | 172.19.0.4 - - [28/Jul/2026 19:47:53] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-28 19:47:53,964 | INFO | 172.19.0.4 - - [28/Jul/2026 19:47:53] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-28 19:48:00,099 | INFO | 172.19.0.4 - - [28/Jul/2026 19:48:00] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-28 19:48:00,118 | INFO | 172.19.0.4 - - [28/Jul/2026 19:48:00] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-28 19:48:09,745 | INFO | --- INICIANDO EJECUCIÓN MANUAL A DEMANDA ---
+2026-07-28 19:48:09,746 | INFO | Iniciando RECOLECTOR para 1 días (2026-07-28 al 2026-07-28)...
+2026-07-28 19:48:10,026 | INFO | Abriendo página de login: https://vicieffectiva.telexpress.cl/sistema_gestion/index.php
+2026-07-28 19:48:12,243 | INFO | 📸 [FOTO TOMADA]: 1_pantalla_antes_login.png
+2026-07-28 19:48:16,514 | INFO | 📸 [FOTO TOMADA]: 2_pantalla_despues_login.png
+2026-07-28 19:48:16,514 | INFO | Sesión iniciada correctamente.
+2026-07-28 19:48:16,514 | INFO | Descargando datos crudos: Día 2026-07-28
+2026-07-28 19:48:33,795 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-28.png
+2026-07-28 19:48:33,795 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-28 19:48:34,021 | INFO | Día 2026-07-28 guardado en RAW BD (5,366 filas).
+2026-07-28 19:48:34,021 | INFO | Recolector finalizado. 5366 filas procesadas en 24.28s.
+2026-07-28 19:48:34,092 | INFO | Iniciando TAREA DE INYECCIÓN SQL para cliente: HITES
+2026-07-28 19:48:34,094 | INFO | ⚙️ Ejecutando Motor SQL de transformación (Código puro del usuario)...
+2026-07-28 19:48:34,118 | INFO | 🌐 Inyectando archivo procesado de HITES al FTP en in/gestiones/mes_año...
+2026-07-28 19:48:34,283 | INFO | ✅ ¡Inyección FTP exitosa para hites (2350 registros)!
+2026-07-28 19:48:34,284 | INFO | 172.19.0.4 - - [28/Jul/2026 19:48:34] "POST /api/ejecutar-etl HTTP/1.1" 200 -
+2026-07-28 19:57:08,161 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-28 19:57:08,161 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-28 19:57:12,316 | INFO | 172.19.0.4 - - [28/Jul/2026 19:57:12] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-28 19:57:12,342 | INFO | 172.19.0.4 - - [28/Jul/2026 19:57:12] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-28 19:58:07,775 | INFO | 172.19.0.4 - - [28/Jul/2026 19:58:07] "POST /api/login HTTP/1.1" 200 -
+2026-07-28 19:58:07,892 | INFO | 172.19.0.4 - - [28/Jul/2026 19:58:07] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-28 19:58:07,920 | INFO | 172.19.0.4 - - [28/Jul/2026 19:58:07] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-28 19:58:11,713 | INFO | --- INICIANDO EJECUCIÓN MANUAL A DEMANDA ---
+2026-07-28 19:58:11,721 | INFO | Iniciando RECOLECTOR para 1 días (2026-07-28 al 2026-07-28)...
+2026-07-28 19:58:11,977 | INFO | Abriendo página de login: https://vicieffectiva.telexpress.cl/sistema_gestion/index.php
+2026-07-28 19:58:14,101 | INFO | 📸 [FOTO TOMADA]: 1_pantalla_antes_login.png
+2026-07-28 19:58:18,365 | INFO | 📸 [FOTO TOMADA]: 2_pantalla_despues_login.png
+2026-07-28 19:58:18,365 | INFO | Sesión iniciada correctamente.
+2026-07-28 19:58:18,365 | INFO | Descargando datos crudos: Día 2026-07-28
+2026-07-28 19:58:35,111 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-28.png
+2026-07-28 19:58:35,111 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-28 19:58:35,263 | INFO | Día 2026-07-28 guardado en RAW BD (5,503 filas).
+2026-07-28 19:58:35,263 | INFO | Recolector finalizado. 5503 filas procesadas en 23.55s.
+2026-07-28 19:58:35,332 | INFO | Iniciando TAREA DE INYECCIÓN SQL para cliente: HITES
+2026-07-28 19:58:35,335 | INFO | ⚙️ Ejecutando Motor SQL de transformación (Código puro del usuario)...
+2026-07-28 19:58:35,393 | INFO | 🌐 Inyectando archivo procesado de HITES al FTP en in/gestiones/mes_año...
+2026-07-28 19:58:35,653 | INFO | Connected (version 2.0, client OpenSSH_8.0)
+2026-07-28 19:58:36,491 | INFO | Authentication (password) successful!
+2026-07-28 19:58:37,704 | INFO | [chan 0] Opened sftp connection (server version 3)
+2026-07-28 19:58:40,048 | INFO | [chan 0] sftp session closed.
+2026-07-28 19:58:40,049 | INFO | ✅ ¡Inyección FTP exitosa para hites (2391 registros)!
+2026-07-28 19:58:40,051 | INFO | 172.19.0.4 - - [28/Jul/2026 19:58:40] "POST /api/ejecutar-etl HTTP/1.1" 200 -
+2026-07-28 19:58:45,109 | INFO | 172.19.0.4 - - [28/Jul/2026 19:58:45] "[33mGET /api/descargar-ultimo/hites HTTP/1.1[0m" 404 -
