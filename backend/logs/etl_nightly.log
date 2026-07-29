@@ -1372,3 +1372,186 @@ WHERE LEFT(campaign, 3) = 'HIT') AS subquery WHERE campaign LIKE 'HIT%%%%']
 2026-07-28 21:32:53,762 | INFO | [33mPress CTRL+C to quit[0m
 2026-07-28 21:49:43,225 | INFO | 172.19.0.4 - - [28/Jul/2026 21:49:43] "GET /api/layout/hites HTTP/1.1" 200 -
 2026-07-28 21:49:43,266 | INFO | 172.19.0.4 - - [28/Jul/2026 21:49:43] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-28 21:56:00,394 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-28 21:56:00,394 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-28 21:58:16,894 | INFO | Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-07-28 21:58:16,895 | INFO | 172.19.0.4 - - [28/Jul/2026 21:58:16] "POST /api/layout/hites/guardar HTTP/1.1" 200 -
+2026-07-28 22:01:27,216 | INFO | 172.19.0.4 - - [28/Jul/2026 22:01:27] "POST /api/config/vicidial/guardar HTTP/1.1" 200 -
+2026-07-29 09:06:10,812 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-29 09:06:10,812 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-29 09:12:52,626 | INFO | 172.19.0.4 - - [29/Jul/2026 09:12:52] "POST /api/login HTTP/1.1" 200 -
+2026-07-29 09:12:52,698 | INFO | 172.19.0.4 - - [29/Jul/2026 09:12:52] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-29 09:12:52,756 | INFO | 172.19.0.4 - - [29/Jul/2026 09:12:52] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-29 09:13:21,372 | INFO | Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-07-29 09:13:21,372 | INFO | 172.19.0.4 - - [29/Jul/2026 09:13:21] "POST /api/layout/hites/guardar HTTP/1.1" 200 -
+2026-07-29 09:13:22,584 | INFO | 172.19.0.4 - - [29/Jul/2026 09:13:22] "POST /api/config/vicidial/guardar HTTP/1.1" 200 -
+2026-07-29 09:17:09,832 | INFO | 172.19.0.4 - - [29/Jul/2026 09:17:09] "[33mGET /api/server-time HTTP/1.1[0m" 404 -
+2026-07-29 09:17:09,842 | INFO | 172.19.0.4 - - [29/Jul/2026 09:17:09] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-29 09:17:09,876 | INFO | 172.19.0.4 - - [29/Jul/2026 09:17:09] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-29 09:19:17,420 | INFO | 172.19.0.4 - - [29/Jul/2026 09:19:17] "[33mGET /api/server-time HTTP/1.1[0m" 404 -
+2026-07-29 09:19:17,422 | INFO | 172.19.0.4 - - [29/Jul/2026 09:19:17] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-29 09:19:17,447 | INFO | 172.19.0.4 - - [29/Jul/2026 09:19:17] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-29 09:19:28,007 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-29 09:19:28,007 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-29 09:20:01,510 | INFO | 172.19.0.4 - - [29/Jul/2026 09:20:01] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-29 09:20:01,515 | INFO | 172.19.0.4 - - [29/Jul/2026 09:20:01] "GET /api/server-time HTTP/1.1" 200 -
+2026-07-29 09:20:01,531 | INFO | 172.19.0.4 - - [29/Jul/2026 09:20:01] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-29 09:20:02,279 | INFO | 172.19.0.4 - - [29/Jul/2026 09:20:02] "GET /api/server-time HTTP/1.1" 200 -
+2026-07-29 09:20:02,282 | INFO | 172.19.0.4 - - [29/Jul/2026 09:20:02] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-29 09:20:02,305 | INFO | 172.19.0.4 - - [29/Jul/2026 09:20:02] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-29 09:20:31,091 | INFO | Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-07-29 09:20:31,092 | INFO | 172.19.0.4 - - [29/Jul/2026 09:20:31] "POST /api/layout/hites/guardar HTTP/1.1" 200 -
+2026-07-29 09:26:03,102 | INFO | Removed job etl_semanal_hites
+2026-07-29 09:26:03,104 | INFO | Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-07-29 09:26:03,106 | INFO | 172.19.0.4 - - [29/Jul/2026 09:26:03] "POST /api/layout/hites/guardar HTTP/1.1" 200 -
+2026-07-29 10:08:29,403 | INFO | Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-07-29 10:08:29,403 | INFO | Added job "orquestador_semanal" to job store "default"
+2026-07-29 10:08:29,403 | INFO | Scheduler started
+2026-07-29 10:08:29,407 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-29 10:08:29,408 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-29 10:09:50,249 | INFO | 172.19.0.4 - - [29/Jul/2026 10:09:50] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-29 10:09:50,254 | INFO | 172.19.0.4 - - [29/Jul/2026 10:09:50] "GET /api/server-time HTTP/1.1" 200 -
+2026-07-29 10:09:50,274 | INFO | 172.19.0.4 - - [29/Jul/2026 10:09:50] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-29 10:10:07,918 | INFO | Removed job etl_semanal_hites
+2026-07-29 10:10:07,921 | INFO | Added job "orquestador_semanal" to job store "default"
+2026-07-29 10:10:07,922 | INFO | 172.19.0.4 - - [29/Jul/2026 10:10:07] "POST /api/layout/hites/guardar HTTP/1.1" 200 -
+2026-07-29 10:13:00,001 | INFO | Running job "orquestador_semanal (trigger: cron[day_of_week='wed', hour='10', minute='13'], next run at: 2026-07-29 10:13:00 -04)" (scheduled at 2026-07-29 10:13:00-04:00)
+2026-07-29 10:13:00,017 | INFO | Iniciando RECOLECTOR para 5 días (2026-07-25 al 2026-07-29)...
+2026-07-29 10:13:00,476 | INFO | Abriendo página de login: https://vicieffectiva.telexpress.cl/sistema_gestion/index.php
+2026-07-29 10:13:02,600 | INFO | 📸 [FOTO TOMADA]: 1_pantalla_antes_login.png
+2026-07-29 10:13:07,064 | INFO | 📸 [FOTO TOMADA]: 2_pantalla_despues_login.png
+2026-07-29 10:13:07,064 | INFO | Sesión iniciada correctamente.
+2026-07-29 10:13:07,064 | INFO | Descargando datos crudos: Día 2026-07-25
+2026-07-29 10:13:25,665 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-25.png
+2026-07-29 10:13:25,665 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-29 10:13:25,977 | INFO | Día 2026-07-25 guardado en RAW BD (10,730 filas).
+2026-07-29 10:13:25,977 | INFO | Descargando datos crudos: Día 2026-07-26
+2026-07-29 10:13:43,700 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-26.png
+2026-07-29 10:13:43,700 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-29 10:13:43,702 | INFO | Descargando datos crudos: Día 2026-07-27
+2026-07-29 10:14:02,617 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-27.png
+2026-07-29 10:14:02,617 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-29 10:14:03,057 | INFO | Día 2026-07-27 guardado en RAW BD (17,989 filas).
+2026-07-29 10:14:03,057 | INFO | Descargando datos crudos: Día 2026-07-28
+2026-07-29 10:14:20,891 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-28.png
+2026-07-29 10:14:20,891 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-29 10:14:21,422 | INFO | Día 2026-07-28 guardado en RAW BD (19,963 filas).
+2026-07-29 10:14:21,422 | INFO | Descargando datos crudos: Día 2026-07-29
+2026-07-29 10:14:42,183 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-29.png
+2026-07-29 10:14:42,183 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-29 10:14:42,227 | INFO | Día 2026-07-29 guardado en RAW BD (1,131 filas).
+2026-07-29 10:14:42,227 | INFO | Recolector finalizado. 49813 filas procesadas en 102.23s.
+2026-07-29 10:14:42,302 | INFO | Iniciando TAREA DE INYECCIÓN SQL para cliente: HITES
+2026-07-29 10:14:42,304 | INFO | ⚙️ Ejecutando Motor SQL de transformación (Código puro del usuario)...
+2026-07-29 10:14:42,450 | INFO | 🌐 Inyectando archivo procesado de HITES al FTP en in/gestiones/mes_año...
+2026-07-29 10:14:42,717 | INFO | Connected (version 2.0, client OpenSSH_8.0)
+2026-07-29 10:14:43,322 | INFO | Authentication (password) successful!
+2026-07-29 10:14:44,125 | INFO | [chan 0] Opened sftp connection (server version 3)
+2026-07-29 10:14:46,876 | INFO | [chan 0] sftp session closed.
+2026-07-29 10:14:46,877 | INFO | ✅ ¡Inyección FTP exitosa para hites (14728 registros)!
+2026-07-29 10:14:46,880 | INFO | Job "orquestador_semanal (trigger: cron[day_of_week='wed', hour='10', minute='13'], next run at: 2026-08-05 10:13:00 -04)" executed successfully
+2026-07-29 12:27:16,744 | INFO | Removed job etl_semanal_hites
+2026-07-29 12:27:16,747 | INFO | Added job "orquestador_semanal" to job store "default"
+2026-07-29 12:27:16,749 | INFO | 172.19.0.4 - - [29/Jul/2026 12:27:16] "POST /api/layout/hites/guardar HTTP/1.1" 200 -
+2026-07-29 12:35:00,001 | INFO | Running job "orquestador_semanal (trigger: cron[day_of_week='wed,mon,tue,thu,fri,sat', hour='12', minute='35'], next run at: 2026-07-30 12:35:00 -04)" (scheduled at 2026-07-29 12:35:00-04:00)
+2026-07-29 12:35:00,003 | INFO | Iniciando RECOLECTOR para 5 días (2026-07-25 al 2026-07-29)...
+2026-07-29 12:35:00,508 | INFO | Abriendo página de login: https://vicieffectiva.telexpress.cl/sistema_gestion/index.php
+2026-07-29 12:35:02,786 | INFO | 📸 [FOTO TOMADA]: 1_pantalla_antes_login.png
+2026-07-29 12:35:07,054 | INFO | 📸 [FOTO TOMADA]: 2_pantalla_despues_login.png
+2026-07-29 12:35:07,054 | INFO | Sesión iniciada correctamente.
+2026-07-29 12:35:07,054 | INFO | Descargando datos crudos: Día 2026-07-25
+2026-07-29 12:35:25,190 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-25.png
+2026-07-29 12:35:25,190 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-29 12:35:25,458 | INFO | Día 2026-07-25 guardado en RAW BD (10,730 filas).
+2026-07-29 12:35:25,458 | INFO | Descargando datos crudos: Día 2026-07-26
+2026-07-29 12:35:41,999 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-26.png
+2026-07-29 12:35:41,999 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-29 12:35:42,001 | INFO | Descargando datos crudos: Día 2026-07-27
+2026-07-29 12:36:02,600 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-27.png
+2026-07-29 12:36:02,600 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-29 12:36:03,117 | INFO | Día 2026-07-27 guardado en RAW BD (17,989 filas).
+2026-07-29 12:36:03,117 | INFO | Descargando datos crudos: Día 2026-07-28
+2026-07-29 12:36:20,503 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-28.png
+2026-07-29 12:36:20,503 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-29 12:36:21,127 | INFO | Día 2026-07-28 guardado en RAW BD (19,960 filas).
+2026-07-29 12:36:21,127 | INFO | Descargando datos crudos: Día 2026-07-29
+2026-07-29 12:36:37,585 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-29.png
+2026-07-29 12:36:37,586 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-29 12:36:37,672 | INFO | Día 2026-07-29 guardado en RAW BD (2,918 filas).
+2026-07-29 12:36:37,673 | INFO | Recolector finalizado. 51597 filas procesadas en 97.67s.
+2026-07-29 12:36:37,749 | INFO | Iniciando TAREA DE INYECCIÓN SQL para cliente: HITES
+2026-07-29 12:36:37,750 | INFO | ⚙️ Ejecutando Motor SQL de transformación (Código puro del usuario)...
+2026-07-29 12:36:37,851 | INFO | 🌐 Inyectando archivo procesado de HITES al FTP en in/gestiones/mes_año...
+2026-07-29 12:36:38,285 | INFO | Connected (version 2.0, client OpenSSH_8.0)
+2026-07-29 12:36:38,909 | INFO | Authentication (password) successful!
+2026-07-29 12:36:39,696 | INFO | [chan 0] Opened sftp connection (server version 3)
+2026-07-29 12:36:42,565 | INFO | [chan 0] sftp session closed.
+2026-07-29 12:36:42,565 | INFO | ✅ ¡Inyección FTP exitosa para hites (15116 registros)!
+2026-07-29 12:36:42,566 | INFO | Job "orquestador_semanal (trigger: cron[day_of_week='wed,mon,tue,thu,fri,sat', hour='12', minute='35'], next run at: 2026-07-30 12:35:00 -04)" executed successfully
+2026-07-29 12:38:13,399 | INFO | Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-07-29 12:38:13,399 | INFO | Added job "orquestador_semanal" to job store "default"
+2026-07-29 12:38:13,399 | INFO | Scheduler started
+2026-07-29 12:38:13,404 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-07-29 12:38:13,404 | INFO | [33mPress CTRL+C to quit[0m
+2026-07-29 12:38:21,254 | INFO | 172.19.0.4 - - [29/Jul/2026 12:38:21] "GET /api/server-time HTTP/1.1" 200 -
+2026-07-29 12:38:21,277 | INFO | 172.19.0.4 - - [29/Jul/2026 12:38:21] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-29 12:38:21,308 | INFO | 172.19.0.4 - - [29/Jul/2026 12:38:21] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-29 12:38:22,624 | INFO | 172.19.0.4 - - [29/Jul/2026 12:38:22] "GET /api/server-time HTTP/1.1" 200 -
+2026-07-29 12:38:22,625 | INFO | 172.19.0.4 - - [29/Jul/2026 12:38:22] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-29 12:38:22,649 | INFO | 172.19.0.4 - - [29/Jul/2026 12:38:22] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-29 12:38:22,988 | INFO | 172.19.0.4 - - [29/Jul/2026 12:38:22] "GET /api/server-time HTTP/1.1" 200 -
+2026-07-29 12:38:22,990 | INFO | 172.19.0.4 - - [29/Jul/2026 12:38:22] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-07-29 12:38:23,016 | INFO | 172.19.0.4 - - [29/Jul/2026 12:38:23] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-07-29 12:38:35,258 | INFO | Removed job etl_semanal_hites
+2026-07-29 12:38:35,261 | INFO | Added job "orquestador_semanal" to job store "default"
+2026-07-29 12:38:35,262 | INFO | 172.19.0.4 - - [29/Jul/2026 12:38:35] "POST /api/layout/hites/guardar HTTP/1.1" 200 -
+2026-07-29 12:42:00,001 | INFO | Running job "orquestador_semanal (trigger: cron[day_of_week='wed,mon,tue,thu,fri,sat', hour='12', minute='42'], next run at: 2026-07-29 12:42:00 -04)" (scheduled at 2026-07-29 12:42:00-04:00)
+2026-07-29 12:42:00,021 | INFO | Iniciando RECOLECTOR para 5 días (2026-07-25 al 2026-07-29)...
+2026-07-29 12:42:00,262 | INFO | Abriendo página de login: https://vicieffectiva.telexpress.cl/sistema_gestion/index.php
+2026-07-29 12:42:02,641 | INFO | 📸 [FOTO TOMADA]: 1_pantalla_antes_login.png
+2026-07-29 12:42:06,895 | INFO | 📸 [FOTO TOMADA]: 2_pantalla_despues_login.png
+2026-07-29 12:42:06,895 | INFO | Sesión iniciada correctamente.
+2026-07-29 12:42:06,895 | INFO | Descargando datos crudos: Día 2026-07-25
+2026-07-29 12:42:24,673 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-25.png
+2026-07-29 12:42:24,678 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-29 12:42:25,005 | INFO | Día 2026-07-25 guardado en RAW BD (10,730 filas).
+2026-07-29 12:42:25,005 | INFO | Descargando datos crudos: Día 2026-07-26
+2026-07-29 12:42:45,511 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-26.png
+2026-07-29 12:42:45,511 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-29 12:42:45,515 | INFO | Descargando datos crudos: Día 2026-07-27
+2026-07-29 12:43:04,894 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-27.png
+2026-07-29 12:43:04,894 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-29 12:43:05,357 | INFO | Día 2026-07-27 guardado en RAW BD (17,989 filas).
+2026-07-29 12:43:05,358 | INFO | Descargando datos crudos: Día 2026-07-28
+2026-07-29 12:43:24,816 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-28.png
+2026-07-29 12:43:24,816 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-29 12:43:25,367 | INFO | Día 2026-07-28 guardado en RAW BD (19,960 filas).
+2026-07-29 12:43:25,367 | INFO | Descargando datos crudos: Día 2026-07-29
+2026-07-29 12:43:43,092 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-07-29.png
+2026-07-29 12:43:43,092 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV...
+2026-07-29 12:43:43,198 | INFO | Día 2026-07-29 guardado en RAW BD (3,050 filas).
+2026-07-29 12:43:43,198 | INFO | Recolector finalizado. 51729 filas procesadas en 103.2s.
+2026-07-29 12:43:43,269 | INFO | Iniciando TAREA DE INYECCIÓN SQL para cliente: HITES
+2026-07-29 12:43:43,271 | INFO | ⚙️ Ejecutando Motor SQL de transformación (Código puro del usuario)...
+2026-07-29 12:43:43,417 | INFO | 🌐 Inyectando archivo procesado de HITES al FTP en in/gestiones/mes_año...
+2026-07-29 12:43:43,788 | INFO | Connected (version 2.0, client OpenSSH_8.0)
+2026-07-29 12:43:44,421 | INFO | Authentication (password) successful!
+2026-07-29 12:43:45,394 | INFO | [chan 0] Opened sftp connection (server version 3)
+2026-07-29 12:43:49,823 | INFO | [chan 0] sftp session closed.
+2026-07-29 12:43:49,823 | INFO | ✅ ¡Inyección FTP exitosa para hites (15134 registros)!
+2026-07-29 12:43:49,826 | INFO | Job "orquestador_semanal (trigger: cron[day_of_week='wed,mon,tue,thu,fri,sat', hour='12', minute='42'], next run at: 2026-07-30 12:42:00 -04)" executed successfully

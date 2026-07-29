@@ -172,6 +172,16 @@ def status():
         "message": "Sesión activa y backend funcionando."
     })
 
+# 1.5 NUEVA RUTA: HORA OFICIAL DEL SERVIDOR PARA EL FRONTEND
+@app.route('/api/server-time', methods=['GET'])
+@login_required
+def get_server_time():
+    """Devuelve la hora exacta del servidor en formato ISO para sincronizar el reloj del Dashboard"""
+    return jsonify({
+        "success": True,
+        "server_time": datetime.now().isoformat()
+    })
+
 # 2. Ruta para iniciar sesión desde Vue
 @app.route('/api/login', methods=['POST'])
 @limiter.limit("5 per minute") 
@@ -376,12 +386,13 @@ def descargar_ultimo(cliente):
 # INICIO DEL SERVIDOR Y CRONOGRAMAS
 # ==========================================
 
+# 🔥 EL ARREGLO CRÍTICO AQUÍ 🔥
+# Lo sacamos del if __name__ == '__main__' para que se ejecute siempre en Docker.
+with app.app_context():
+    actualizar_cronogramas()
+
+if not scheduler.running:
+    scheduler.start()
+
 if __name__ == '__main__':
-    with app.app_context():
-        # Inicializamos los cronogramas dinámicos (El Orquestador)
-        actualizar_cronogramas()
-        
-        # Arrancamos el reloj en segundo plano
-        scheduler.start()
-        
     app.run(host='0.0.0.0', port=5000)

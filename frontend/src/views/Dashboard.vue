@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'; 
+import { ref, onMounted, onUnmounted } from 'vue'; 
 import axios from 'axios';
 import { useRouter } from 'vue-router';
 
@@ -15,6 +15,44 @@ const cerrarSesion = async () => {
         console.error("Error al cerrar sesión", error);
     }
 };
+
+// ==========================================
+// RELOJ OFICIAL DEL SERVIDOR EN VIVO
+// ==========================================
+const horaServidorVisual = ref('Cargando hora...');
+let intervaloReloj = null;
+
+const iniciarRelojSincronizado = async () => {
+    try {
+        // Pedimos la hora oficial al backend
+        const respuesta = await axios.get('/api/server-time');
+        
+        if (respuesta.data.success) {
+            // Convertimos el string ISO a un objeto Date real
+            let horaActual = new Date(respuesta.data.server_time);
+            
+            // Creamos un ciclo que sume 1 segundo a esa hora localmente
+            intervaloReloj = setInterval(() => {
+                horaActual.setSeconds(horaActual.getSeconds() + 1);
+                
+                // Formateamos para que se vea bonito (Ej: 09:15:30)
+                const horas = String(horaActual.getHours()).padStart(2, '0');
+                const minutos = String(horaActual.getMinutes()).padStart(2, '0');
+                const segundos = String(horaActual.getSeconds()).padStart(2, '0');
+                
+                horaServidorVisual.value = `${horas}:${minutos}:${segundos}`;
+            }, 1000);
+        }
+    } catch (error) {
+        horaServidorVisual.value = 'Error al sincronizar';
+        console.error("No se pudo obtener la hora del servidor", error);
+    }
+};
+
+// Limpieza para evitar fugas de memoria si cambias de página
+onUnmounted(() => {
+    if (intervaloReloj) clearInterval(intervaloReloj);
+});
 
 // ==========================================
 // ESTADOS DE COLLAPSE (Para encoger tarjetas)
@@ -51,12 +89,10 @@ const ejecutarRobot = async () => {
 const descargarUltimoArchivo = async () => {
     descargando.value = true;
     try {
-        // Pedimos el archivo a la API como 'blob' (archivo binario)
         const response = await axios.get(`/api/descargar-ultimo/${mandanteActivo.value}`, {
             responseType: 'blob'
         });
         
-        // Magia para forzar la descarga en el navegador
         const url = window.URL.createObjectURL(new Blob([response.data]));
         const link = document.createElement('a');
         link.href = url;
@@ -104,14 +140,13 @@ const consultaSQL = ref(`SELECT
     '' AS mail_contacto
 FROM gestiones;`);
 
-// Array para manejar los checkboxes de los días
 const diasSeleccionados = ref(['fri']);
 
 const configuracionSFTP = ref({
     dia: 'fri',
     hora: '21:00',
     ruta: 'gestiones/mes_año',
-    dia_inicio_ciclo: 5 // 0=Lunes, 1=Martes ... 5=Sábado, 6=Domingo
+    dia_inicio_ciclo: 5 
 });
 
 const guardandoLayout = ref(false);
@@ -121,11 +156,9 @@ const viciConfig = ref({ url: '', username: '', password: '' });
 const guardandoVici = ref(false);
 const mensajeVici = ref('');
 
-// Cargar configuraciones (SQL + SFTP + Vici) desde PostgreSQL
 const cargarConfiguraciones = async () => {
     mensajeLayout.value = ''; 
     try {
-        // 1. Cargar Motor SQL y SFTP del mandante
         const respuestaLayout = await axios.get(`/api/layout/${mandanteActivo.value}`);
         if (respuestaLayout.data.success && respuestaLayout.data.prefijo_campana) {
             prefijoCampana.value = respuestaLayout.data.prefijo_campana;
@@ -134,10 +167,8 @@ const cargarConfiguraciones = async () => {
             const sftpDB = respuestaLayout.data.sftp;
             configuracionSFTP.value.hora = sftpDB.hora || '21:00';
             configuracionSFTP.value.ruta = sftpDB.ruta || 'gestiones/mes_año';
-            // Cargamos el nuevo valor, si no existe lo seteamos en Sábado (5) por defecto
             configuracionSFTP.value.dia_inicio_ciclo = sftpDB.dia_inicio_ciclo !== undefined ? sftpDB.dia_inicio_ciclo : 5;
             
-            // Traductor Inverso: De BD antigua a Checkboxes
             let rawDia = sftpDB.dia || 'fri';
             const diasMapReverse = {
                 'Todos los días LUNES': ['mon'],
@@ -161,7 +192,6 @@ const cargarConfiguraciones = async () => {
             }
         }
 
-        // 2. Cargar Accesos de Vicidial
         const respuestaVici = await axios.get('/api/config/vicidial');
         if (respuestaVici.data.success) {
             viciConfig.value.url = respuestaVici.data.url;
@@ -175,17 +205,15 @@ const cargarConfiguraciones = async () => {
 
 onMounted(() => {
     cargarConfiguraciones();
+    iniciarRelojSincronizado(); // <--- INICIAMOS EL RELOJ AL ABRIR LA PÁGINA
 });
 
-// Guardar el Motor SQL y SFTP en la BD
 const guardarMotorSQL = async () => {
     guardandoLayout.value = true;
     mensajeLayout.value = '';
     
-    // Convertir el array de checkboxes a string (ej: 'mon,wed,fri')
     let cronString = diasSeleccionados.value.join(',');
     
-    // Embellecer rangos completos para el backend
     if (diasSeleccionados.value.length === 5 && !diasSeleccionados.value.includes('sat') && !diasSeleccionados.value.includes('sun')) {
         cronString = 'mon-fri';
     } else if (diasSeleccionados.value.length === 7) {
@@ -227,11 +255,21 @@ const guardarVicidial = async () => {
 <template>
   <div style="font-family: sans-serif; padding: 20px; background-color: #e9ecef; min-height: 100vh; box-sizing: border-box;">
     
-    <!-- Barra de navegación -->
+    <!-- Barra de navegación (ACTUALIZADA CON RELOJ) -->
     <nav style="background: #212529; color: white; padding: 15px 25px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-        <h3 style="margin: 0;">⚙️ SISTEMA ROOT - Panel de Control</h3>
-        <div>
-            <span style="margin-right: 20px; font-weight: bold;">👋 Hola, {{ usuarioActual }}</span>
+        <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+            ⚙️ SISTEMA ROOT 
+            <span style="font-size: 14px; font-weight: normal; color: #adb5bd; border-left: 1px solid #495057; padding-left: 10px;">Panel de Control</span>
+        </h3>
+        
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <!-- EL NUEVO RELOJ DIGITAL -->
+            <div style="background: #000; padding: 5px 15px; border-radius: 4px; border: 1px solid #333; font-family: monospace; font-size: 16px; color: #00ffcc; letter-spacing: 1px; display: flex; flex-direction: column; align-items: center;">
+                <span style="font-size: 10px; color: #aaa; letter-spacing: 0;">HORA OFICIAL DEL SERVIDOR</span>
+                {{ horaServidorVisual }}
+            </div>
+
+            <span style="font-weight: bold;">👋 Hola, {{ usuarioActual }}</span>
             <button @click="cerrarSesion" style="background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">Cerrar Sesión</button>
         </div>
     </nav>
@@ -326,7 +364,6 @@ const guardarVicidial = async () => {
                         <label style="cursor: pointer; font-size: 14px;"><input type="checkbox" value="sun" v-model="diasSeleccionados"> Domingo</label>
                     </div>
 
-                    <!-- AQUÍ ESTÁ LA NUEVA INTELIGENCIA: EL SELECTOR DE DÍA DE INICIO -->
                     <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">
                         Día de Inicio de Campaña (Calculadora Automática):
                     </label>

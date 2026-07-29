@@ -8,6 +8,7 @@ services:
       POSTGRES_DB: central_etl_db
       POSTGRES_USER: etl_admin
       POSTGRES_PASSWORD: etl_password_segura_2026
+      TZ: America/Santiago # <-- ZONA HORARIA INYECTADA AQUÍ
     ports:
       - "5433:5432" # Puerto 5433 expuesto para que no choque con tu otra BD
     volumes:
@@ -28,6 +29,7 @@ services:
       - DB_USER=etl_admin
       - DB_PASSWORD=etl_password_segura_2026
       - DB_PORT=5432
+      - TZ=America/Santiago # <-- ZONA HORARIA INYECTADA AQUÍ PARA EL RELOJ
     depends_on:
       - db
 
@@ -36,6 +38,8 @@ services:
     build: ./frontend
     container_name: central_etl_vue
     restart: always
+    environment:
+      - TZ=America/Santiago # <-- ZONA HORARIA INYECTADA AQUÍ
     ports:
       - "8088:8088" # <-- ¡Actualizado al nuevo puerto para evitar colisiones!
     volumes:
