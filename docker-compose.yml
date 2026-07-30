@@ -8,43 +8,49 @@ services:
       POSTGRES_DB: central_etl_db
       POSTGRES_USER: etl_admin
       POSTGRES_PASSWORD: etl_password_segura_2026
-      TZ: America/Santiago # <-- ZONA HORARIA INYECTADA AQUÍ
+      TZ: America/Santiago
     ports:
-      - "5433:5432" # Puerto 5433 expuesto para que no choque con tu otra BD
+      - "5433:5432"
     volumes:
       - postgres_multimandante_data:/var/lib/postgresql/data
+      # Ancla el reloj al hardware del servidor (Solo lectura)
+      - /etc/localtime:/etc/localtime:ro 
 
   # El entorno de Python donde correrá tu Robot Enterprise y la API
   app:
-    build: ./backend # <-- ACTUALIZADO: Ahora busca el Dockerfile en la carpeta backend
+    build: ./backend
     container_name: central_etl_app
     restart: always
     ports:
-      - "9090:5000" # <-- Puerto 9090 asignado para tu backend API (Flask)
+      - "9090:5000"
     volumes:
-      - ./backend:/app # <-- ACTUALIZADO: Ahora monta solo la carpeta backend
+      - ./backend:/app
+      # Ancla el reloj al hardware del servidor (Solo lectura)
+      - /etc/localtime:/etc/localtime:ro 
     environment:
       - DB_HOST=db
       - DB_NAME=central_etl_db
       - DB_USER=etl_admin
       - DB_PASSWORD=etl_password_segura_2026
       - DB_PORT=5432
-      - TZ=America/Santiago # <-- ZONA HORARIA INYECTADA AQUÍ PARA EL RELOJ
+      - TZ=America/Santiago
     depends_on:
       - db
 
-  # NUEVO: Tu entorno Frontend en Vue.js (Mudado al puerto 8088)
+  # Tu entorno Frontend en Vue.js (Mudado al puerto 8088)
   frontend:
     build: ./frontend
     container_name: central_etl_vue
     restart: always
     environment:
-      - TZ=America/Santiago # <-- ZONA HORARIA INYECTADA AQUÍ
+      - TZ=America/Santiago
     ports:
-      - "8088:8088" # <-- ¡Actualizado al nuevo puerto para evitar colisiones!
+      - "8088:8088"
     volumes:
       - ./frontend:/app
-      - /app/node_modules # Protege la instalación interna de librerías de Node
+      - /app/node_modules
+      # Ancla el reloj al hardware del servidor (Solo lectura)
+      - /etc/localtime:/etc/localtime:ro 
     depends_on:
       - app
 
