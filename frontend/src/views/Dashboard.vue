@@ -146,7 +146,8 @@ const configuracionSFTP = ref({
     dia: 'fri',
     hora: '21:00',
     ruta: 'gestiones/mes_año',
-    dia_inicio_ciclo: 5 
+    dia_inicio_ciclo: 5,
+    tipo_extraccion: 'semanal' // <-- NUEVA PROPIEDAD: Por defecto Semanal (Bola de nieve)
 });
 
 const guardandoLayout = ref(false);
@@ -168,6 +169,9 @@ const cargarConfiguraciones = async () => {
             configuracionSFTP.value.hora = sftpDB.hora || '21:00';
             configuracionSFTP.value.ruta = sftpDB.ruta || 'gestiones/mes_año';
             configuracionSFTP.value.dia_inicio_ciclo = sftpDB.dia_inicio_ciclo !== undefined ? sftpDB.dia_inicio_ciclo : 5;
+            
+            // Cargar el tipo de extracción desde BD (si no existe, asumimos semanal)
+            configuracionSFTP.value.tipo_extraccion = sftpDB.tipo_extraccion || 'semanal';
             
             let rawDia = sftpDB.dia || 'fri';
             const diasMapReverse = {
@@ -353,6 +357,25 @@ const guardarVicidial = async () => {
                 
                 <div v-show="showSFTP">
                     
+                    <!-- NUEVO: TIPO DE EXTRACCIÓN (INTERRUPTOR MAESTRO) -->
+                    <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 10px;">Modo de Extracción (Cerebro):</label>
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; background: #e3f2fd; padding: 12px; border-radius: 6px; border: 1px solid #90caf9;">
+                        <label style="cursor: pointer; font-size: 14px; display: flex; align-items: flex-start; gap: 8px;">
+                            <input type="radio" value="semanal" v-model="configuracionSFTP.tipo_extraccion" style="margin-top: 3px;"> 
+                            <div>
+                                <strong>Acumulado Semanal (Consolidado)</strong><br>
+                                <span style="font-size: 12px; color: #555;">Suma los días desde el inicio del ciclo (Ej: Sáb-Mar, Sáb-Mié). Ideal para cierres de semana.</span>
+                            </div>
+                        </label>
+                        <label style="cursor: pointer; font-size: 14px; display: flex; align-items: flex-start; gap: 8px;">
+                            <input type="radio" value="diario" v-model="configuracionSFTP.tipo_extraccion" style="margin-top: 3px;"> 
+                            <div>
+                                <strong>Transaccional Diario Puro</strong><br>
+                                <span style="font-size: 12px; color: #555;">Extrae y envía única y exclusivamente las gestiones del día en que se ejecuta (Sin acumular).</span>
+                            </div>
+                        </label>
+                    </div>
+
                     <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 10px;">Días de Ejecución (FTP):</label>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #dee2e6;">
                         <label style="cursor: pointer; font-size: 14px;"><input type="checkbox" value="mon" v-model="diasSeleccionados"> Lunes</label>
@@ -365,10 +388,15 @@ const guardarVicidial = async () => {
                     </div>
 
                     <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">
-                        Día de Inicio de Campaña (Calculadora Automática):
+                        Día de Inicio de Campaña (Para Modo Consolidado):
                     </label>
                     <div style="margin-bottom: 15px;">
-                        <select v-model="configuracionSFTP.dia_inicio_ciclo" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; background: white; font-weight: bold;">
+                        <select 
+                            v-model="configuracionSFTP.dia_inicio_ciclo" 
+                            :disabled="configuracionSFTP.tipo_extraccion === 'diario'"
+                            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; background: white; font-weight: bold;"
+                            :style="{ backgroundColor: configuracionSFTP.tipo_extraccion === 'diario' ? '#e9ecef' : 'white' }"
+                        >
                             <option :value="0">Lunes</option>
                             <option :value="1">Martes</option>
                             <option :value="2">Miércoles</option>
@@ -378,7 +406,7 @@ const guardarVicidial = async () => {
                             <option :value="6">Domingo</option>
                         </select>
                         <p style="font-size: 12px; color: #6c757d; line-height: 1.3; margin-top: 5px;">
-                            El robot calculará matemáticamente los días de retroceso. Si marcas "Sábado", y hoy es martes, descargará exactamente desde el sábado hasta hoy. Ya no debes ajustar números.
+                            En modo Acumulado, el robot calcula matemáticamente los días de retroceso hacia este día. En modo Diario puro, esta opción se desactiva ya que solo lee el día actual.
                         </p>
                     </div>
 

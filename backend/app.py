@@ -58,32 +58,36 @@ limiter = Limiter(
 init_db_and_admins(app)
 
 # ==========================================
-# CEREBRO AUTOMÁTICO (SCHEDULER Y ORQUESTADOR)
+# CEREBRO AUTOMÁTICO (SCHEDULER Y ORQUESTADOR HÍBRIDO)
 # ==========================================
 scheduler = BackgroundScheduler()
 
-def orquestador_semanal(cliente, dia_inicio_ciclo=5):
+def orquestador_maestro(cliente, dia_inicio_ciclo=5, tipo_extraccion='semanal'):
     """
-    EL MODELO HÍBRIDO DINÁMICO CON CEREBRO MATEMÁTICO: 
-    Calcula de forma autónoma los días hacia atrás basados en el día de inicio configurado.
+    EL MODELO HÍBRIDO INTELIGENTE:
+    Puede actuar como "Bola de Nieve Semanal" o como "Transaccional Diario Puro"
+    dependiendo del interruptor maestro configurado en la base de datos.
     """
-    print(f"🚀 [ORQUESTADOR] Iniciando proceso automático para {cliente.upper()}...")
+    print(f"🚀 [ORQUESTADOR] Iniciando proceso automático para {cliente.upper()} en modo: {tipo_extraccion.upper()}")
     
     hoy = datetime.now()
     hoy_weekday = hoy.weekday() # Lunes = 0, Domingo = 6
-    
-    # 🧠 EL CEREBRO MATEMÁTICO: (Día de hoy - Día de inicio) módulo 7
-    # Si hoy es Martes(1) y el ciclo inicia el Sábado(5): (1 - 5) % 7 = 3 días de retroceso.
-    # Si hoy es Viernes(4) y el ciclo inicia el Sábado(5): (4 - 5) % 7 = 6 días de retroceso.
-    dias_retroceso = (hoy_weekday - dia_inicio_ciclo) % 7
-    
     fecha_fin = hoy.strftime("%Y-%m-%d")
-    fecha_inicio = (hoy - timedelta(days=dias_retroceso)).strftime("%Y-%m-%d")
     
-    # Logs para que veas la magia matemática en consola
-    print(f"🧠 [CEREBRO MATEMÁTICO] Hoy es el día {hoy_weekday}. El ciclo inicia el día {dia_inicio_ciclo}.")
-    print(f"🧠 [CEREBRO MATEMÁTICO] La calculadora determinó ir {dias_retroceso} días hacia el pasado.")
-    print(f"📅 [ORQUESTADOR] Rango de extracción: {fecha_inicio} al {fecha_fin}")
+    # Lógica de decisión
+    if tipo_extraccion == 'diario':
+        # MODO DIARIO PURO: Solo el día de hoy
+        fecha_inicio = hoy.strftime("%Y-%m-%d")
+        print(f"🧠 [CEREBRO DIARIO] Extrayendo exclusivamente el día actual.")
+    
+    else:
+        # MODO SEMANAL (Bola de Nieve): Calcula días de retroceso
+        dias_retroceso = (hoy_weekday - dia_inicio_ciclo) % 7
+        fecha_inicio = (hoy - timedelta(days=dias_retroceso)).strftime("%Y-%m-%d")
+        print(f"🧠 [CEREBRO SEMANAL] Hoy es el día {hoy_weekday}. El ciclo inicia el día {dia_inicio_ciclo}.")
+        print(f"🧠 [CEREBRO SEMANAL] La calculadora determinó ir {dias_retroceso} días hacia el pasado.")
+
+    print(f"📅 [ORQUESTADOR] Rango de extracción definitivo: {fecha_inicio} al {fecha_fin}")
     
     # Enviar al Recolector a buscar los datos a Vicidial
     exito_rec, msg_rec = tarea_recolector_nocturno(start_date=fecha_inicio, end_date=fecha_fin)
@@ -107,12 +111,12 @@ def orquestador_semanal(cliente, dia_inicio_ciclo=5):
 def actualizar_cronogramas():
     """Lee la base de datos y reprograma el ORQUESTADOR según lo configurado en el Panel Vue"""
     with app.app_context():
-        # Limpiamos los trabajos anteriores por si cambiaste la hora en el panel
+        # Limpiamos los trabajos anteriores
         for job in scheduler.get_jobs():
-            if job.id.startswith('etl_semanal_'):
+            if job.id.startswith('etl_maestro_'):
                 job.remove()
                 
-        # Buscamos todas las configuraciones de mandantes guardadas
+        # Buscamos todas las configuraciones
         layouts = LayoutConfig.query.all()
         for layout in layouts:
             cliente = layout.cliente
@@ -122,10 +126,11 @@ def actualizar_cronogramas():
             dia_str = sftp.get('dia', 'fri')
             hora_str = sftp.get('hora', '21:00')
             
-            # Rescatamos la nueva variable desde la BD, por defecto 5 (Sábado)
+            # Rescatamos variables clave
             dia_inicio_ciclo = int(sftp.get('dia_inicio_ciclo', 5))
+            tipo_extraccion = sftp.get('tipo_extraccion', 'semanal') # Por defecto mantiene el sistema antiguo
             
-            # Traductor exacto para compatibilidad con datos viejos en BD
+            # Traductor exacto para compatibilidad
             dias_map = {
                 'Todos los días LUNES': 'mon',
                 'Todos los días MARTES': 'tue',
@@ -139,22 +144,21 @@ def actualizar_cronogramas():
                 'Diario': 'mon-sun'
             }
             
-            # Toma la traducción si es un formato viejo, si es el nuevo (ej: "mon,wed") lo deja intacto.
             dia_cron = dias_map.get(dia_str, dia_str)
             
             try:
                 hora, minuto = hora_str.split(':')
-                job_id = f'etl_semanal_{cliente}'
+                job_id = f'etl_maestro_{cliente}'
                 
-                # Agregamos el Orquestador al reloj, pasándole el día de inicio a la calculadora
+                # Agregamos el Orquestador al reloj
                 scheduler.add_job(
-                    func=orquestador_semanal,
+                    func=orquestador_maestro,
                     trigger=CronTrigger(day_of_week=dia_cron, hour=hora, minute=minuto),
-                    args=[cliente, dia_inicio_ciclo],
+                    args=[cliente, dia_inicio_ciclo, tipo_extraccion],
                     id=job_id,
                     replace_existing=True
                 )
-                print(f"⏰ [RELOJ] Orquestador ETL para {cliente.upper()} programado: {dia_cron} a las {hora_str} (Inicio de ciclo: día {dia_inicio_ciclo})")
+                print(f"⏰ [RELOJ] Orquestador ETL para {cliente.upper()} programado: {dia_cron} a las {hora_str} | Modo: {tipo_extraccion}")
             except Exception as e:
                 print(f"❌ [RELOJ] Error programando {cliente}: {e}")
 
@@ -162,7 +166,6 @@ def actualizar_cronogramas():
 # RUTAS API (PUNTOS DE CONEXIÓN PARA VUE)
 # ==========================================
 
-# 1. Ruta para verificar si el usuario tiene sesión activa
 @app.route('/api/status', methods=['GET'])
 @login_required 
 def status():
@@ -172,17 +175,14 @@ def status():
         "message": "Sesión activa y backend funcionando."
     })
 
-# 1.5 NUEVA RUTA: HORA OFICIAL DEL SERVIDOR PARA EL FRONTEND
 @app.route('/api/server-time', methods=['GET'])
 @login_required
 def get_server_time():
-    """Devuelve la hora exacta del servidor en formato ISO para sincronizar el reloj del Dashboard"""
     return jsonify({
         "success": True,
         "server_time": datetime.now().isoformat()
     })
 
-# 2. Ruta para iniciar sesión desde Vue
 @app.route('/api/login', methods=['POST'])
 @limiter.limit("5 per minute") 
 def login():
@@ -206,14 +206,12 @@ def login():
     else:
         return jsonify({"success": False, "message": "Usuario o contraseña incorrectos."}), 401
 
-# 3. Ruta para cerrar sesión
 @app.route('/api/logout', methods=['POST'])
 @login_required
 def logout():
     logout_user()
     return jsonify({"success": True, "message": "Sesión cerrada correctamente."})
 
-# 4. Pide la configuración de la Campaña y SQL dinámicamente
 @app.route('/api/layout/<cliente>', methods=['GET'])
 @login_required
 def obtener_layout(cliente):
@@ -224,7 +222,14 @@ def obtener_layout(cliente):
         
         prefijo = datos.get("prefijo_campana", "")
         sql = datos.get("consulta_sql", "SELECT * FROM gestiones_raw;")
-        sftp = datos.get("sftp", {"dia": "fri", "hora": "21:00", "ruta": "gestiones/mes_año", "dia_inicio_ciclo": 5})
+        
+        # Inyectamos el valor por defecto si es que la BD es vieja y no lo tiene
+        sftp = datos.get("sftp", {})
+        if "dia_inicio_ciclo" not in sftp: sftp["dia_inicio_ciclo"] = 5
+        if "tipo_extraccion" not in sftp: sftp["tipo_extraccion"] = "semanal"
+        if "dia" not in sftp: sftp["dia"] = "fri"
+        if "hora" not in sftp: sftp["hora"] = "21:00"
+        if "ruta" not in sftp: sftp["ruta"] = "gestiones/mes_año"
         
         return jsonify({
             "success": True, 
@@ -237,14 +242,13 @@ def obtener_layout(cliente):
             "success": True, 
             "prefijo_campana": "",
             "consulta_sql": "SELECT * FROM gestiones_raw;",
-            "sftp": {"dia": "fri", "hora": "21:00", "ruta": "gestiones/mes_año", "dia_inicio_ciclo": 5}
+            "sftp": {"dia": "fri", "hora": "21:00", "ruta": "gestiones/mes_año", "dia_inicio_ciclo": 5, "tipo_extraccion": "semanal"}
         }), 200
 
 # ==========================================
 # RUTAS DEL MOTOR ETL
 # ==========================================
 
-# 5. Ruta para que Vue dispare el Robot Hites MANUALMENTE
 @app.route('/api/ejecutar-etl', methods=['POST'])
 @login_required
 def ejecutar_etl():
@@ -260,18 +264,15 @@ def ejecutar_etl():
 # RUTA DEL CONSTRUCTOR DE LAYOUTS DINÁMICO Y SFTP
 # ==========================================
 
-# 6. Guarda prefijo SQL y configuración de SFTP
 @app.route('/api/layout/<cliente>/guardar', methods=['POST'])
 @login_required
 def guardar_layout(cliente):
     data = request.get_json()
     
-    # Extraemos la nueva estructura de datos
     prefijo = data.get('prefijo_campana', '')
     sql = data.get('consulta_sql', '')
     config_sftp = data.get('sftp', {})
     
-    # Empaquetamos todo
     paquete_final = {
         "prefijo_campana": prefijo,
         "consulta_sql": sql,
@@ -291,7 +292,6 @@ def guardar_layout(cliente):
             
         db.session.commit()
         
-        # ¡MAGIA EN TIEMPO REAL!: Actualizamos el reloj interno sin reiniciar el servidor
         actualizar_cronogramas()
         
         return jsonify({
@@ -311,7 +311,6 @@ def guardar_layout(cliente):
 # RUTAS: CREDENCIALES DE VICIDIAL
 # ==========================================
 
-# 7. Obtener las credenciales guardadas
 @app.route('/api/config/vicidial', methods=['GET'])
 @login_required
 def get_vicidial_config():
@@ -326,7 +325,6 @@ def get_vicidial_config():
     
     return jsonify({"success": True, "url": "", "username": "", "password": ""}), 200
 
-# 8. Guardar o actualizar las credenciales
 @app.route('/api/config/vicidial/guardar', methods=['POST'])
 @login_required
 def save_vicidial_config():
@@ -357,7 +355,6 @@ def save_vicidial_config():
 # RUTA: DESCARGAR ARCHIVO INYECTADO
 # ==========================================
 
-# 9. Descargar el último archivo procesado del cliente
 @app.route('/api/descargar-ultimo/<cliente>', methods=['GET'])
 @login_required
 def descargar_ultimo(cliente):
@@ -365,15 +362,12 @@ def descargar_ultimo(cliente):
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         download_dir = os.path.join(base_dir, "downloads")
         
-        # NOTA: Si cambiaste el nombre en extractor.py a "EFFECTIVA_GESTIONES", 
-        # asegúrate que aquí el patrón coincida o usa un comodín amplio.
         patron_busqueda = os.path.join(download_dir, f"*GESTIONES_*.csv")
         archivos_encontrados = glob.glob(patron_busqueda)
         
         if not archivos_encontrados:
             return jsonify({"success": False, "message": "No hay archivos generados para descargar. Ejecuta el robot primero."}), 404
             
-        # Obtenemos el archivo creado más recientemente
         ultimo_archivo = max(archivos_encontrados, key=os.path.getctime)
         
         return send_file(ultimo_archivo, as_attachment=True)
@@ -386,8 +380,6 @@ def descargar_ultimo(cliente):
 # INICIO DEL SERVIDOR Y CRONOGRAMAS
 # ==========================================
 
-# 🔥 EL ARREGLO CRÍTICO AQUÍ 🔥
-# Lo sacamos del if __name__ == '__main__' para que se ejecute siempre en Docker.
 with app.app_context():
     actualizar_cronogramas()
 

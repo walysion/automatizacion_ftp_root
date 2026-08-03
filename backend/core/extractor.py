@@ -60,7 +60,7 @@ def get_date_list(start_str, end_str):
     return dates
 
 # =================================================================
-# TAREA A: EL RECOLECTOR NOCTURNO (MODO CAMARÓGRAFO)
+# TAREA A: EL RECOLECTOR NOCTURNO (MODO CAMARÓGRAFO BLINDADO)
 # =================================================================
 def tarea_recolector_nocturno(start_date=None, end_date=None):
     if not start_date or not end_date:
@@ -165,38 +165,55 @@ def tarea_recolector_nocturno(start_date=None, end_date=None):
 
         for target_date in date_list:
             log_print(f"Descargando datos crudos: Día {target_date}")
-
-            direct_download_url = f"{export_base_url}?desde={target_date}&hasta={target_date}&rut=&valor_buscar=RUT&campana="
-            
-            # TRUCO NINJA: Inyectamos JS para no romper la sesión de Vicidial
-            driver.execute_script(f"window.location.href = '{direct_download_url}';")
-            time.sleep(3) 
-            
-            # 📸 FOTO 3: Cuando intenta descargar
-            driver.save_screenshot(os.path.join(DOWNLOAD_DIR, f"3_pantalla_descarga_{target_date}.png"))
-            log_print(f"📸 [FOTO TOMADA]: 3_pantalla_descarga_{target_date}.png")
-
             downloaded_file = None
-            log_print(f"🕵️‍♂️ [FORENSE] Buscando CSV...")
+            max_reintentos = 3
             
-            for i in range(45): 
-                archivos_en_carpeta = os.listdir(DOWNLOAD_DIR)
+            # 🔥 CEREBRO ANTI-CAÍDAS: Bucle de Reintentos
+            for intento in range(1, max_reintentos + 1):
+                if intento > 1:
+                    log_print(f"⚠️ Reintento {intento}/{max_reintentos} para el día {target_date}...")
+                    driver.refresh() # Refrescamos para "despertar" la sesión
+                    time.sleep(3)
+
+                direct_download_url = f"{export_base_url}?desde={target_date}&hasta={target_date}&rut=&valor_buscar=RUT&campana="
                 
-                # ¡EL FILTRO CORREGIDO! Ahora busca los que empiezan con GESTIONES-
-                archivos_candidatos = [os.path.join(DOWNLOAD_DIR, f) for f in archivos_en_carpeta if f.startswith('GESTIONES-') and f.lower().endswith('.csv')]
-                valid_files = [f for f in archivos_candidatos if not f.lower().endswith('.crdownload')]
+                # TRUCO NINJA: Inyectamos JS para no romper la sesión de Vicidial
+                driver.execute_script(f"window.location.href = '{direct_download_url}';")
+                time.sleep(3) 
                 
-                if valid_files:
-                    latest_file = max(valid_files, key=os.path.getctime)
-                    peso = os.path.getsize(latest_file)
-                    if peso > 0:
-                        downloaded_file = latest_file
-                        break
-                time.sleep(1)
+                # 📸 FOTO 3: Cuando intenta descargar
+                driver.save_screenshot(os.path.join(DOWNLOAD_DIR, f"3_pantalla_descarga_{target_date}_intento_{intento}.png"))
+                if intento == 1:
+                    log_print(f"📸 [FOTO TOMADA]: 3_pantalla_descarga_{target_date}.png")
+
+                log_print(f"🕵️‍♂️ [FORENSE] Buscando CSV (Intento {intento})...")
                 
+                # Esperamos hasta 60 segundos por intento
+                for i in range(60): 
+                    archivos_en_carpeta = os.listdir(DOWNLOAD_DIR)
+                    
+                    # ¡EL FILTRO CORREGIDO! Ahora busca los que empiezan con GESTIONES-
+                    archivos_candidatos = [os.path.join(DOWNLOAD_DIR, f) for f in archivos_en_carpeta if f.startswith('GESTIONES-') and f.lower().endswith('.csv')]
+                    valid_files = [f for f in archivos_candidatos if not f.lower().endswith('.crdownload')]
+                    
+                    if valid_files:
+                        latest_file = max(valid_files, key=os.path.getctime)
+                        peso = os.path.getsize(latest_file)
+                        if peso > 0:
+                            downloaded_file = latest_file
+                            break
+                    time.sleep(1)
+                
+                # Si encontró el archivo, salimos del bucle de reintentos
+                if downloaded_file:
+                    break
+                else:
+                    log_print(f"⏳ Tiempo de espera agotado (60s) en el intento {intento}.", "error")
+
+            # Si después de los reintentos sigue sin archivo, tomamos foto y pasamos al siguiente día
             if not downloaded_file:
                 url_actual = driver.current_url
-                log_print(f"❌ No se generó reporte para {target_date}.", "error")
+                log_print(f"❌ FALLO DEFINITIVO: No se generó reporte para {target_date} después de {max_reintentos} intentos.", "error")
                 # 📸 FOTO 4: Foto del error
                 driver.save_screenshot(os.path.join(DOWNLOAD_DIR, f"4_pantalla_error_{target_date}.png"))
                 log_print(f"📸 [FOTO TOMADA]: 4_pantalla_error_{target_date}.png")
