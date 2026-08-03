@@ -138,61 +138,69 @@ def tarea_recolector_nocturno(start_date=None, end_date=None):
         wait = WebDriverWait(driver, 30)
 
         log_print(f"Abriendo página de login: {login_url}")
-        driver.get(login_url)
-        time.sleep(2) 
         
-        # 📸 FOTO 1: Antes de loguearse
-        driver.save_screenshot(os.path.join(DOWNLOAD_DIR, "1_pantalla_antes_login.png"))
-        log_print("📸 [FOTO TOMADA]: 1_pantalla_antes_login.png")
-
-        user_field = wait.until(EC.presence_of_element_located((By.NAME, 'username')))
-        user_field.clear()
-        user_field.send_keys(vici_user)
-        driver.find_element(By.NAME, 'password').send_keys(vici_pass)
-        
+        # ESCUDO ANTI-CAÍDAS: LOGIN
         try:
-            driver.find_element(By.XPATH, '//input[@name="Submit2" and @value="Ingresar"]').click()
-        except:
-            driver.find_element(By.NAME, 'password').submit()
-        
-        time.sleep(4) # Esperamos 4 segundos para asegurarnos de que la página cargó
-        
-        # 📸 FOTO 2: Después de loguearse
-        driver.save_screenshot(os.path.join(DOWNLOAD_DIR, "2_pantalla_despues_login.png"))
-        log_print("📸 [FOTO TOMADA]: 2_pantalla_despues_login.png")
-        
-        log_print("Sesión iniciada correctamente.")
+            driver.get(login_url)
+            time.sleep(2) 
+            
+            driver.save_screenshot(os.path.join(DOWNLOAD_DIR, "1_pantalla_antes_login.png"))
+            log_print("📸 [FOTO TOMADA]: 1_pantalla_antes_login.png")
+
+            user_field = wait.until(EC.presence_of_element_located((By.NAME, 'username')))
+            user_field.clear()
+            user_field.send_keys(vici_user)
+            driver.find_element(By.NAME, 'password').send_keys(vici_pass)
+            
+            try:
+                driver.find_element(By.XPATH, '//input[@name="Submit2" and @value="Ingresar"]').click()
+            except:
+                driver.find_element(By.NAME, 'password').submit()
+            
+            time.sleep(4)
+            
+            driver.save_screenshot(os.path.join(DOWNLOAD_DIR, "2_pantalla_despues_login.png"))
+            log_print("📸 [FOTO TOMADA]: 2_pantalla_despues_login.png")
+            log_print("Sesión iniciada correctamente.")
+            
+        except TimeoutException:
+            return False, "❌ El portal de Vicidial tardó demasiado en responder (Timeout)."
+        except WebDriverException as we:
+            return False, f"❌ Error de red conectando a Vicidial: {str(we)}"
 
         for target_date in date_list:
             log_print(f"Descargando datos crudos: Día {target_date}")
             downloaded_file = None
             max_reintentos = 3
             
-            # 🔥 CEREBRO ANTI-CAÍDAS: Bucle de Reintentos
+            # 🔥 CEREBRO ANTI-CAÍDAS: Bucle de Reintentos de Descarga
             for intento in range(1, max_reintentos + 1):
                 if intento > 1:
                     log_print(f"⚠️ Reintento {intento}/{max_reintentos} para el día {target_date}...")
-                    driver.refresh() # Refrescamos para "despertar" la sesión
-                    time.sleep(3)
+                    try:
+                        driver.refresh()
+                        time.sleep(3)
+                    except:
+                        pass # Si falla el refresh, forzamos el script igual abajo
 
                 direct_download_url = f"{export_base_url}?desde={target_date}&hasta={target_date}&rut=&valor_buscar=RUT&campana="
                 
-                # TRUCO NINJA: Inyectamos JS para no romper la sesión de Vicidial
-                driver.execute_script(f"window.location.href = '{direct_download_url}';")
+                try:
+                    driver.execute_script(f"window.location.href = '{direct_download_url}';")
+                except Exception as ex:
+                    log_print(f"Error inyectando JS: {ex}", "error")
+                    
                 time.sleep(3) 
                 
-                # 📸 FOTO 3: Cuando intenta descargar
                 driver.save_screenshot(os.path.join(DOWNLOAD_DIR, f"3_pantalla_descarga_{target_date}_intento_{intento}.png"))
                 if intento == 1:
                     log_print(f"📸 [FOTO TOMADA]: 3_pantalla_descarga_{target_date}.png")
 
                 log_print(f"🕵️‍♂️ [FORENSE] Buscando CSV (Intento {intento})...")
                 
-                # Esperamos hasta 60 segundos por intento
                 for i in range(60): 
                     archivos_en_carpeta = os.listdir(DOWNLOAD_DIR)
                     
-                    # ¡EL FILTRO CORREGIDO! Ahora busca los que empiezan con GESTIONES-
                     archivos_candidatos = [os.path.join(DOWNLOAD_DIR, f) for f in archivos_en_carpeta if f.startswith('GESTIONES-') and f.lower().endswith('.csv')]
                     valid_files = [f for f in archivos_candidatos if not f.lower().endswith('.crdownload')]
                     
@@ -204,19 +212,14 @@ def tarea_recolector_nocturno(start_date=None, end_date=None):
                             break
                     time.sleep(1)
                 
-                # Si encontró el archivo, salimos del bucle de reintentos
                 if downloaded_file:
                     break
                 else:
                     log_print(f"⏳ Tiempo de espera agotado (60s) en el intento {intento}.", "error")
 
-            # Si después de los reintentos sigue sin archivo, tomamos foto y pasamos al siguiente día
             if not downloaded_file:
-                url_actual = driver.current_url
                 log_print(f"❌ FALLO DEFINITIVO: No se generó reporte para {target_date} después de {max_reintentos} intentos.", "error")
-                # 📸 FOTO 4: Foto del error
                 driver.save_screenshot(os.path.join(DOWNLOAD_DIR, f"4_pantalla_error_{target_date}.png"))
-                log_print(f"📸 [FOTO TOMADA]: 4_pantalla_error_{target_date}.png")
                 continue
 
             try:
@@ -278,10 +281,24 @@ def tarea_recolector_nocturno(start_date=None, end_date=None):
             driver.quit()
 
 # =================================================================
-# TAREA B: EL INYECTOR SEMANAL (Motor SQL y FTP)
+# TAREA B: EL INYECTOR SEMANAL (Motor SQL y FTP con VIAJE EN EL TIEMPO Y FILTRO)
 # =================================================================
-def tarea_inyector_semanal(cliente):
+def tarea_inyector_semanal(cliente, fecha_lote=None):
+    """
+    Recibe un fecha_lote (ej: 2026-02-14). Si no recibe nada, asume el día actual.
+    """
     log_print(f"Iniciando TAREA DE INYECCIÓN SQL para cliente: {cliente.upper()}")
+    
+    # 1. Determinamos en qué época estamos operando
+    if fecha_lote:
+        dt_lote = datetime.strptime(fecha_lote, "%Y-%m-%d")
+        log_print(f"⏳ [VIAJE EN EL TIEMPO] Procesando y enrutando con fecha base: {fecha_lote}")
+    else:
+        dt_lote = datetime.now()
+        
+    fecha_str = dt_lote.strftime("%d%m%Y")
+    mes_anio = dt_lote.strftime("%m_%Y")
+    
     try:
         with engine.begin() as conn:
             conn.execute(text("""
@@ -301,25 +318,62 @@ def tarea_inyector_semanal(cliente):
             config_json = res[0] if isinstance(res[0], dict) else json.loads(res[0])
             consulta_sql = config_json.get('consulta_sql', '')
             sftp_config = config_json.get('sftp', {})
+            prefijo = config_json.get('prefijo_campana', '')
 
         if not consulta_sql:
             return False
 
-        log_print("⚙️ Ejecutando Motor SQL de transformación (Código puro del usuario)...")
+        # --- LA MAGIA DEL FILTRO AUTOMÁTICO (EL ESCUDO) ---
+        # Leemos qué modo tiene configurado el usuario para saber qué fechas sacar de la Bodega
+        tipo_extraccion = sftp_config.get('tipo_extraccion', 'semanal')
+        dia_inicio_ciclo = int(sftp_config.get('dia_inicio_ciclo', 5))
+
+        if tipo_extraccion == 'diario':
+            # Modo Diario: Sacamos solo la fecha del lote
+            fecha_inicio_filtro = dt_lote.strftime("%Y-%m-%d")
+        else:
+            # Modo Semanal: Calculamos hacia atrás hasta el día de inicio
+            hoy_weekday = dt_lote.weekday()
+            dias_retroceso = (hoy_weekday - dia_inicio_ciclo) % 7
+            fecha_inicio_filtro = (dt_lote - timedelta(days=dias_retroceso)).strftime("%Y-%m-%d")
+
+        fecha_fin_filtro = dt_lote.strftime("%Y-%m-%d")
+
+        log_print(f"⚙️ Motor SQL: Aplicando filtro automático desde {fecha_inicio_filtro} hasta {fecha_fin_filtro}")
+
+        # Limpiamos el SQL del usuario (por si dejó un punto y coma al final)
+        sql_usuario = consulta_sql.strip().rstrip(';')
+
+        # Creamos la tabla virtual (CTE) para filtrar los datos ANTES del SELECT del usuario
+        consulta_final = f"""
+        WITH gestiones AS (
+            SELECT * FROM gestiones_raw 
+            WHERE fecha >= '{fecha_inicio_filtro} 00:00:00' 
+            AND fecha <= '{fecha_fin_filtro} 23:59:59'
+            AND campaign LIKE '{prefijo}%'
+        )
+        {sql_usuario}
+        """
+
+        log_print("⚙️ Ejecutando Motor SQL de transformación (Código con CTE dinámica)...")
         
         with engine.connect() as conn:
-            df_sql = pd.read_sql(text(consulta_sql), conn)
+            df_sql = pd.read_sql(text(consulta_final), conn)
         
         if df_sql.empty:
             log_print(f"⚠️ El Motor SQL no arrojó resultados para {cliente}. No se enviará FTP.")
             return True
 
-        fecha_str = datetime.now().strftime("%d%m%Y")
         archivo_csv_ftp = os.path.join(DOWNLOAD_DIR, f"{cliente.upper()}_GESTIONES_{fecha_str}.csv")
         df_sql.to_csv(archivo_csv_ftp, index=False, sep=',')
         
-        mes_anio = datetime.now().strftime("%m_%Y")
-        ruta_ftp_destino = sftp_config.get('ruta', f'in/gestiones/{mes_anio}')
+        # MAGIA DEL DIRECTORIO DINÁMICO
+        ruta_ftp_base = sftp_config.get('ruta', '')
+        if not ruta_ftp_base or ruta_ftp_base.strip() == '':
+            ruta_ftp_destino = f'in/gestiones/{mes_anio}'
+        else:
+            # Reemplaza la palabra mágica "mes_año" por el mes y año que corresponde
+            ruta_ftp_destino = ruta_ftp_base.replace('mes_año', mes_anio)
         
         log_print(f"🌐 Inyectando archivo procesado de {cliente.upper()} al FTP en {ruta_ftp_destino}...")
         exito_inyeccion = inyectar_ftp_resiliente(cliente, archivo_csv_ftp, ruta_ftp_destino)
@@ -335,18 +389,18 @@ def tarea_inyector_semanal(cliente):
         return False
 
 # =================================================================
-# EJECUCIÓN MANUAL DESDE VUE
+# EJECUCIÓN MANUAL DESDE VUE (HOY)
 # =================================================================
 def ejecutar_extraccion_hites():
     hoy = datetime.now().strftime("%Y-%m-%d")
-    log_print("--- INICIANDO EJECUCIÓN MANUAL A DEMANDA ---")
+    log_print("--- INICIANDO EJECUCIÓN MANUAL A DEMANDA (MODO HOY) ---")
     
     exito_rec, msg_rec = tarea_recolector_nocturno(start_date=hoy, end_date=hoy)
     
     if not exito_rec:
         return False, f"Error en recolección: {msg_rec}"
         
-    exito_iny = tarea_inyector_semanal("hites")
+    exito_iny = tarea_inyector_semanal("hites", fecha_lote=hoy)
     
     if exito_iny:
         return True, f"¡Operación ETL completada! {msg_rec} Archivo Hites inyectado exitosamente."

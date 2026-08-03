@@ -24,18 +24,14 @@ let intervaloReloj = null;
 
 const iniciarRelojSincronizado = async () => {
     try {
-        // Pedimos la hora oficial al backend
         const respuesta = await axios.get('/api/server-time');
         
         if (respuesta.data.success) {
-            // Convertimos el string ISO a un objeto Date real
             let horaActual = new Date(respuesta.data.server_time);
             
-            // Creamos un ciclo que sume 1 segundo a esa hora localmente
             intervaloReloj = setInterval(() => {
                 horaActual.setSeconds(horaActual.getSeconds() + 1);
                 
-                // Formateamos para que se vea bonito (Ej: 09:15:30)
                 const horas = String(horaActual.getHours()).padStart(2, '0');
                 const minutos = String(horaActual.getMinutes()).padStart(2, '0');
                 const segundos = String(horaActual.getSeconds()).padStart(2, '0');
@@ -49,7 +45,6 @@ const iniciarRelojSincronizado = async () => {
     }
 };
 
-// Limpieza para evitar fugas de memoria si cambias de página
 onUnmounted(() => {
     if (intervaloReloj) clearInterval(intervaloReloj);
 });
@@ -58,12 +53,13 @@ onUnmounted(() => {
 // ESTADOS DE COLLAPSE (Para encoger tarjetas)
 // ==========================================
 const showRobot = ref(true);
-const showVicidial = ref(true);
-const showSFTP = ref(true);
+const showManuales = ref(true); // Nueva tarjeta de herramientas manuales
+const showVicidial = ref(false); // La cerramos por defecto para ahorrar espacio
+const showSFTP = ref(false); // La cerramos por defecto
 const showMotorSQL = ref(true);
 
 // ==========================================
-// LÓGICA DEL ROBOT ETL Y DESCARGA
+// LÓGICA DEL ROBOT ETL (DÍA ACTUAL)
 // ==========================================
 const ejecutando = ref(false);
 const descargando = ref(false);
@@ -108,37 +104,88 @@ const descargarUltimoArchivo = async () => {
 };
 
 // ==========================================
+// LÓGICA DE HERRAMIENTAS MANUALES (A y B)
+// ==========================================
+const rescateInicio = ref('');
+const rescateFin = ref('');
+const rescatando = ref(false);
+
+const exportInicio = ref('');
+const exportFin = ref('');
+const exportando = ref(false);
+
+const ejecutarRescateVicidial = async () => {
+    if (!rescateInicio.value || !rescateFin.value) {
+        alert("⚠️ Por favor, selecciona una fecha de inicio y una de fin.");
+        return;
+    }
+    if (rescateInicio.value > rescateFin.value) {
+        alert("⚠️ La fecha de inicio no puede ser mayor que la de fin.");
+        return;
+    }
+
+    rescatando.value = true;
+    resultadoMensaje.value = '';
+    
+    try {
+        // Llamaremos a una nueva ruta en app.py diseñada para bucles
+        const respuesta = await axios.post('/api/robot/rescate', {
+            cliente: mandanteActivo.value,
+            fecha_inicio: rescateInicio.value,
+            fecha_fin: rescateFin.value
+        });
+        resultadoTipo.value = 'success';
+        resultadoMensaje.value = respuesta.data.message;
+    } catch (error) {
+        resultadoTipo.value = 'error';
+        resultadoMensaje.value = error.response?.data?.message || 'Error en el rescate de datos.';
+    } finally {
+        rescatando.value = false;
+    }
+};
+
+const generarConsolidadoHistorico = async () => {
+    if (!exportInicio.value || !exportFin.value) {
+        alert("⚠️ Por favor, selecciona el rango de fechas para el consolidado.");
+        return;
+    }
+    if (exportInicio.value > exportFin.value) {
+        alert("⚠️ La fecha de inicio no puede ser mayor que la de fin.");
+        return;
+    }
+
+    exportando.value = true;
+    try {
+        // Llamaremos a una nueva ruta GET en app.py que exporta desde Postgres directo
+        const response = await axios.get(`/api/exportar-historico/${mandanteActivo.value}`, {
+            params: {
+                inicio: exportInicio.value,
+                fin: exportFin.value
+            },
+            responseType: 'blob'
+        });
+        
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${mandanteActivo.value.toUpperCase()}_CONSOLIDADO_${exportInicio.value}_al_${exportFin.value}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (error) {
+        alert("❌ Error al generar el consolidado histórico. Revisa que haya datos en ese rango.");
+    } finally {
+        exportando.value = false;
+    }
+};
+
+// ==========================================
 // LÓGICA DEL MOTOR SQL, SFTP Y VICIDIAL
 // ==========================================
 const mandanteActivo = ref('hites');
 
 const prefijoCampana = ref('HIT');
-const consultaSQL = ref(`SELECT
-    LEFT(COALESCE(rut_cliente, ''), 8) AS rut_sin_digito,
-    LEFT(COALESCE(cod_gestion, ''), 2) AS codigo_de_accion,
-    RIGHT(COALESCE(cod_gestion, ''), 2) AS codigo_de_resultado,
-    RIGHT(COALESCE(telefono, ''), 9) AS telefono_contacto,
-    'EFECTIVA' AS empresa,
-    LEFT(COALESCE(gestor, ''), 10) AS gestor,
-    TO_CHAR(fecha::timestamp, 'DD-MM-YYYY') AS fecha_gestion,
-    TO_CHAR(fecha::timestamp, 'HH24:MI:SS') AS hora_gestion,
-    LEFT(
-        REPLACE(
-            REPLACE(
-                REPLACE(
-                    REPLACE(
-                        REPLACE(
-                            REPLACE(
-                                REPLACE(COALESCE(glosa, ''), 'Ã“', 'O'),
-                            'Ã¡', 'a'),
-                        'Ã©', 'e'),
-                    'Ã-', 'i'),
-                'Ã³', 'o'),
-            'Ã±', 'n'),
-        ',', ' '),
-    150) AS comentario,
-    '' AS mail_contacto
-FROM gestiones;`);
+const consultaSQL = ref(`SELECT * FROM gestiones;`); // Default simple
 
 const diasSeleccionados = ref(['fri']);
 
@@ -147,7 +194,7 @@ const configuracionSFTP = ref({
     hora: '21:00',
     ruta: 'gestiones/mes_año',
     dia_inicio_ciclo: 5,
-    tipo_extraccion: 'semanal' // <-- NUEVA PROPIEDAD: Por defecto Semanal (Bola de nieve)
+    tipo_extraccion: 'semanal' 
 });
 
 const guardandoLayout = ref(false);
@@ -169,8 +216,6 @@ const cargarConfiguraciones = async () => {
             configuracionSFTP.value.hora = sftpDB.hora || '21:00';
             configuracionSFTP.value.ruta = sftpDB.ruta || 'gestiones/mes_año';
             configuracionSFTP.value.dia_inicio_ciclo = sftpDB.dia_inicio_ciclo !== undefined ? sftpDB.dia_inicio_ciclo : 5;
-            
-            // Cargar el tipo de extracción desde BD (si no existe, asumimos semanal)
             configuracionSFTP.value.tipo_extraccion = sftpDB.tipo_extraccion || 'semanal';
             
             let rawDia = sftpDB.dia || 'fri';
@@ -209,7 +254,7 @@ const cargarConfiguraciones = async () => {
 
 onMounted(() => {
     cargarConfiguraciones();
-    iniciarRelojSincronizado(); // <--- INICIAMOS EL RELOJ AL ABRIR LA PÁGINA
+    iniciarRelojSincronizado(); 
 });
 
 const guardarMotorSQL = async () => {
@@ -259,7 +304,7 @@ const guardarVicidial = async () => {
 <template>
   <div style="font-family: sans-serif; padding: 20px; background-color: #e9ecef; min-height: 100vh; box-sizing: border-box;">
     
-    <!-- Barra de navegación (ACTUALIZADA CON RELOJ) -->
+    <!-- Barra de navegación -->
     <nav style="background: #212529; color: white; padding: 15px 25px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
             ⚙️ SISTEMA ROOT 
@@ -267,7 +312,7 @@ const guardarVicidial = async () => {
         </h3>
         
         <div style="display: flex; align-items: center; gap: 20px;">
-            <!-- EL NUEVO RELOJ DIGITAL -->
+            <!-- RELOJ DIGITAL -->
             <div style="background: #000; padding: 5px 15px; border-radius: 4px; border: 1px solid #333; font-family: monospace; font-size: 16px; color: #00ffcc; letter-spacing: 1px; display: flex; flex-direction: column; align-items: center;">
                 <span style="font-size: 10px; color: #aaa; letter-spacing: 0;">HORA OFICIAL DEL SERVIDOR</span>
                 {{ horaServidorVisual }}
@@ -281,33 +326,33 @@ const guardarVicidial = async () => {
     <!-- Contenedor Principal -->
     <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 20px;">
         
-        <!-- COLUMNA IZQUIERDA: ROBOT, SFTP Y VICIDIAL -->
+        <!-- COLUMNA IZQUIERDA -->
         <div style="display: flex; flex-direction: column; gap: 20px;">
             
-            <!-- TARJETA 1: ACCIONES DEL ROBOT -->
+            <!-- TARJETA 1: ROBOT AUTOMÁTICO -->
             <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                 <h3 @click="showRobot = !showRobot" style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between;">
-                    🤖 Operaciones ETL <span>{{ showRobot ? '🔼' : '🔽' }}</span>
+                    🤖 Robot ETL (Extracción Diaria) <span>{{ showRobot ? '🔼' : '🔽' }}</span>
                 </h3>
                 
                 <div v-show="showRobot">
-                    <p style="color: #6c757d; margin-bottom: 25px; font-size: 14px;">
-                        Dispara el Script de Selenium para descargar carteras y procesar la información.
+                    <p style="color: #6c757d; margin-bottom: 15px; font-size: 14px;">
+                        Dispara el Robot de forma manual para forzar la extracción configurada del día de hoy.
                     </p>
                     
                     <button 
                         @click="ejecutarRobot" 
-                        :disabled="ejecutando"
+                        :disabled="ejecutando || rescatando"
                         style="padding: 14px 24px; color: white; border: none; border-radius: 6px; font-weight: bold; width: 100%; cursor: pointer; margin-bottom: 10px;"
                         :style="{ backgroundColor: ejecutando ? '#6c757d' : '#0d6efd' }"
                     >
-                        <span v-if="ejecutando">⏳ Ejecutando Extracción...</span>
-                        <span v-else>▶️ INICIAR ROBOT {{ mandanteActivo.toUpperCase() }}</span>
+                        <span v-if="ejecutando">⏳ Ejecutando Extracción del día...</span>
+                        <span v-else>▶️ INICIAR ROBOT {{ mandanteActivo.toUpperCase() }} (HOY)</span>
                     </button>
 
                     <button 
                         @click="descargarUltimoArchivo" 
-                        :disabled="descargando || ejecutando"
+                        :disabled="descargando || ejecutando || rescatando"
                         style="padding: 12px; background: #198754; color: white; border: none; border-radius: 6px; font-weight: bold; width: 100%; cursor: pointer;"
                     >
                         {{ descargando ? '📥 Descargando...' : '📥 Descargar Último Archivo Inyectado' }}
@@ -320,7 +365,68 @@ const guardarVicidial = async () => {
                 </div>
             </div>
 
-            <!-- TARJETA 2: CREDENCIALES VICIDIAL -->
+            <!-- NUEVA TARJETA 1.5: HERRAMIENTAS MANUALES AVANZADAS -->
+            <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-left: 4px solid #ffc107;">
+                <h3 @click="showManuales = !showManuales" style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between;">
+                    🛠️ Herramientas Manuales <span>{{ showManuales ? '🔼' : '🔽' }}</span>
+                </h3>
+                
+                <div v-show="showManuales" style="display: flex; flex-direction: column; gap: 20px; margin-top: 15px;">
+                    
+                    <!-- HERRAMIENTA A: EL MINERO -->
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 6px; border: 1px solid #ffe69c;">
+                        <h4 style="margin: 0 0 5px 0; color: #664d03;">⛏️ Herramienta A: Rescate Vicidial</h4>
+                        <p style="font-size: 12px; color: #664d03; margin-top: 0;">Obliga al robot a ir a Vicidial a descargar días pasados (Ej: Se cayó el servidor el fin de semana).</p>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <div>
+                                <label style="font-size: 11px; font-weight: bold; color: #664d03;">Inicio:</label>
+                                <input type="date" v-model="rescateInicio" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" />
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: bold; color: #664d03;">Fin:</label>
+                                <input type="date" v-model="rescateFin" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" />
+                            </div>
+                        </div>
+                        
+                        <button 
+                            @click="ejecutarRescateVicidial" 
+                            :disabled="rescatando || ejecutando"
+                            style="width: 100%; padding: 10px; background: #ffca2c; color: #000; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;"
+                        >
+                            {{ rescatando ? '⏳ Extrañendo datos...' : 'Forzar Extracción Vicidial' }}
+                        </button>
+                    </div>
+
+                    <!-- HERRAMIENTA B: LA BÓVEDA -->
+                    <div style="background: #e2e3e5; padding: 15px; border-radius: 6px; border: 1px solid #d3d6d8;">
+                        <h4 style="margin: 0 0 5px 0; color: #41464b;">📦 Herramienta B: Exportador Histórico</h4>
+                        <p style="font-size: 12px; color: #41464b; margin-top: 0;">Arma un CSV gigante al instante usando los datos que ya están en la base local (No usa Vicidial).</p>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <div>
+                                <label style="font-size: 11px; font-weight: bold; color: #41464b;">Inicio:</label>
+                                <input type="date" v-model="exportInicio" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" />
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; font-weight: bold; color: #41464b;">Fin:</label>
+                                <input type="date" v-model="exportFin" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" />
+                            </div>
+                        </div>
+                        
+                        <button 
+                            @click="generarConsolidadoHistorico" 
+                            :disabled="exportando"
+                            style="width: 100%; padding: 10px; background: #6c757d; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;"
+                        >
+                            {{ exportando ? '⏳ Generando archivo...' : 'Descargar Consolidado CSV' }}
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- TARJETA 2: CREDENCIALES VICIDIAL (Colapsada por defecto para ahorrar espacio visual) -->
             <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                 <h3 @click="showVicidial = !showVicidial" style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between;">
                     🔐 Accesos Vicidial <span>{{ showVicidial ? '🔼' : '🔽' }}</span>
@@ -349,7 +455,7 @@ const guardarVicidial = async () => {
                 </div>
             </div>
 
-            <!-- TARJETA 3: CONFIGURACIÓN SFTP -->
+            <!-- TARJETA 3: CONFIGURACIÓN SFTP (Colapsada por defecto) -->
             <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                 <h3 @click="showSFTP = !showSFTP" style="margin-top: 0; color: #212529; border-bottom: 2px solid #e9ecef; padding-bottom: 10px; cursor: pointer; display: flex; justify-content: space-between;">
                     🕒 Configuración y Horario <span>{{ showSFTP ? '🔼' : '🔽' }}</span>
@@ -357,21 +463,20 @@ const guardarVicidial = async () => {
                 
                 <div v-show="showSFTP">
                     
-                    <!-- NUEVO: TIPO DE EXTRACCIÓN (INTERRUPTOR MAESTRO) -->
-                    <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 10px;">Modo de Extracción (Cerebro):</label>
+                    <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 10px;">Modo de Extracción (Cerebro Automático):</label>
                     <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; background: #e3f2fd; padding: 12px; border-radius: 6px; border: 1px solid #90caf9;">
                         <label style="cursor: pointer; font-size: 14px; display: flex; align-items: flex-start; gap: 8px;">
                             <input type="radio" value="semanal" v-model="configuracionSFTP.tipo_extraccion" style="margin-top: 3px;"> 
                             <div>
                                 <strong>Acumulado Semanal (Consolidado)</strong><br>
-                                <span style="font-size: 12px; color: #555;">Suma los días desde el inicio del ciclo (Ej: Sáb-Mar, Sáb-Mié). Ideal para cierres de semana.</span>
+                                <span style="font-size: 12px; color: #555;">Suma los días desde el inicio del ciclo. Ideal para cierres de semana.</span>
                             </div>
                         </label>
                         <label style="cursor: pointer; font-size: 14px; display: flex; align-items: flex-start; gap: 8px;">
                             <input type="radio" value="diario" v-model="configuracionSFTP.tipo_extraccion" style="margin-top: 3px;"> 
                             <div>
                                 <strong>Transaccional Diario Puro</strong><br>
-                                <span style="font-size: 12px; color: #555;">Extrae y envía única y exclusivamente las gestiones del día en que se ejecuta (Sin acumular).</span>
+                                <span style="font-size: 12px; color: #555;">Extrae y envía única y exclusivamente las gestiones del día.</span>
                             </div>
                         </label>
                     </div>
@@ -405,9 +510,6 @@ const guardarVicidial = async () => {
                             <option :value="5">Sábado</option>
                             <option :value="6">Domingo</option>
                         </select>
-                        <p style="font-size: 12px; color: #6c757d; line-height: 1.3; margin-top: 5px;">
-                            En modo Acumulado, el robot calcula matemáticamente los días de retroceso hacia este día. En modo Diario puro, esta opción se desactiva ya que solo lee el día actual.
-                        </p>
                     </div>
 
                     <label style="font-size: 13px; font-weight: bold; color: #666; display: block; margin-bottom: 5px;">Hora límite de carga:</label>

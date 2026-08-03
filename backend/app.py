@@ -1,5 +1,7 @@
 import os
 import glob
+import io
+import pandas as pd
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS  # ⚠️ Necesario para que Vue y Flask conversen
@@ -99,7 +101,8 @@ def orquestador_maestro(cliente, dia_inicio_ciclo=5, tipo_extraccion='semanal'):
     print(f"✅ [ORQUESTADOR] Recolección consolidada con éxito. Levantando Inyector FTP...")
     
     # Si la recolección fue exitosa, inyectar el consolidado al FTP
-    exito_iny = tarea_inyector_semanal(cliente)
+    # Al ser el automático, le pasamos la fecha de fin (hoy) como referencia
+    exito_iny = tarea_inyector_semanal(cliente, fecha_lote=fecha_fin)
     
     if exito_iny:
         print(f"🏆 [ORQUESTADOR] ¡Éxito total! Archivo consolidado de {cliente.upper()} inyectado correctamente.")
@@ -221,7 +224,7 @@ def obtener_layout(cliente):
         datos = layout.columnas if isinstance(layout.columnas, dict) else {}
         
         prefijo = datos.get("prefijo_campana", "")
-        sql = datos.get("consulta_sql", "SELECT * FROM gestiones_raw;")
+        sql = datos.get("consulta_sql", "SELECT * FROM gestiones;")
         
         # Inyectamos el valor por defecto si es que la BD es vieja y no lo tiene
         sftp = datos.get("sftp", {})
@@ -241,12 +244,12 @@ def obtener_layout(cliente):
         return jsonify({
             "success": True, 
             "prefijo_campana": "",
-            "consulta_sql": "SELECT * FROM gestiones_raw;",
+            "consulta_sql": "SELECT * FROM gestiones;",
             "sftp": {"dia": "fri", "hora": "21:00", "ruta": "gestiones/mes_año", "dia_inicio_ciclo": 5, "tipo_extraccion": "semanal"}
         }), 200
 
 # ==========================================
-# RUTAS DEL MOTOR ETL
+# RUTAS DEL MOTOR ETL Y HERRAMIENTAS MANUALES
 # ==========================================
 
 @app.route('/api/ejecutar-etl', methods=['POST'])
@@ -259,6 +262,108 @@ def ejecutar_etl():
         return jsonify({"success": True, "message": mensaje}), 200
     else:
         return jsonify({"success": False, "message": mensaje}), 500
+
+# ⛏️ HERRAMIENTA A: EL MINERO (RESCATE DE VICIDIAL)
+@app.route('/api/robot/rescate', methods=['POST'])
+@login_required
+def ejecutar_rescate():
+    data = request.get_json()
+    cliente = data.get('cliente', 'hites')
+    fecha_inicio_str = data.get('fecha_inicio')
+    fecha_fin_str = data.get('fecha_fin')
+
+    if not fecha_inicio_str or not fecha_fin_str:
+        return jsonify({"success": False, "message": "Faltan fechas."}), 400
+
+    try:
+        f_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d')
+        f_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d')
+        
+        dias_totales = (f_fin - f_inicio).days
+        
+        if dias_totales < 0:
+            return jsonify({"success": False, "message": "La fecha de inicio no puede ser mayor que la de fin."}), 400
+
+        print(f"⛏️ [MINERO] Iniciando rescate para {cliente.upper()} desde {fecha_inicio_str} al {fecha_fin_str}")
+        
+        # EL BUCLE MAGISTRAL: Procesa día por día para no ahogar a Vicidial
+        for i in range(dias_totales + 1):
+            dia_actual = f_inicio + timedelta(days=i)
+            dia_str = dia_actual.strftime('%Y-%m-%d')
+            
+            print(f"🔄 [MINERO] Extrayendo y procesando día: {dia_str}")
+            
+            # 1. Va a buscar los datos a Vicidial
+            exito_rec, msg_rec = tarea_recolector_nocturno(start_date=dia_str, end_date=dia_str)
+            
+            if exito_rec:
+                # 2. Si encontró datos, los inyecta. 
+                # Le pasamos "fecha_lote" para que viaje en el tiempo y cree la carpeta del mes correcto
+                tarea_inyector_semanal(cliente, fecha_lote=dia_str)
+            else:
+                print(f"⚠️ [MINERO] El día {dia_str} falló o no tenía datos: {msg_rec}")
+
+        return jsonify({"success": True, "message": f"¡Rescate completado! Se procesaron los días del {fecha_inicio_str} al {fecha_fin_str}."}), 200
+
+    except Exception as e:
+        print(f"❌ Error en rescate: {e}")
+        return jsonify({"success": False, "message": f"Error interno en rescate: {str(e)}"}), 500
+
+# 📦 HERRAMIENTA B: LA BÓVEDA (EXPORTADOR HISTÓRICO MASIVO)
+@app.route('/api/exportar-historico/<cliente>', methods=['GET'])
+@login_required
+def exportar_historico(cliente):
+    inicio = request.args.get('inicio')
+    fin = request.args.get('fin')
+    
+    if not inicio or not fin:
+        return jsonify({"success": False, "message": "Faltan fechas"}), 400
+        
+    layout = LayoutConfig.query.filter_by(cliente=cliente).first()
+    if not layout:
+        return jsonify({"success": False, "message": "No hay configuración para este cliente"}), 404
+        
+    datos = layout.columnas if isinstance(layout.columnas, dict) else {}
+    prefijo = datos.get("prefijo_campana", "")
+    sql_usuario = datos.get("consulta_sql", "SELECT * FROM gestiones;")
+    
+    # Limpiamos el punto y coma final si el usuario lo puso, para evitar errores de sintaxis
+    sql_usuario = sql_usuario.strip().rstrip(';')
+    
+    # EL TRUCO DE ARQUITECTURA: 
+    # Creamos una "Tabla Virtual" (CTE) filtrada en tiempo real.
+    # Así, cuando el SQL del usuario hace "FROM gestiones", lee solo los datos de esa fecha y campaña.
+    consulta_final = f"""
+    WITH gestiones AS (
+        SELECT * FROM gestiones_raw 
+        WHERE fecha >= '{inicio} 00:00:00' 
+        AND fecha <= '{fin} 23:59:59'
+        AND campana LIKE '{prefijo}%%'
+    )
+    {sql_usuario}
+    """
+    
+    try:
+        print(f"📦 [BÓVEDA] Extrayendo consolidado histórico de {cliente.upper()}...")
+        
+        # Usamos pandas para ejecutar el SQL directo en la base de datos y traer el resultado
+        df = pd.read_sql(consulta_final, db.engine)
+        
+        # Convertimos el DataFrame a un CSV en memoria RAM (Súper rápido, sin tocar el disco duro)
+        output = io.StringIO()
+        df.to_csv(output, index=False, sep=';', encoding='utf-8-sig')
+        output.seek(0)
+        
+        # Enviamos el archivo flotando directo al navegador del usuario
+        return send_file(
+            io.BytesIO(output.getvalue().encode('utf-8-sig')),
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=f'{cliente.upper()}_CONSOLIDADO_{inicio}_al_{fin}.csv'
+        )
+    except Exception as e:
+        print(f"❌ Error exportando histórico: {e}")
+        return jsonify({"success": False, "message": f"Error BD: {str(e)}"}), 500
 
 # ==========================================
 # RUTA DEL CONSTRUCTOR DE LAYOUTS DINÁMICO Y SFTP
