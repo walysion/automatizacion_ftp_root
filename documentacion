@@ -27,3 +27,36 @@ Documentación Técnica: Central ETL Multi-Mandante1. Resumen del ProyectoPlataf
 5. Estado Actual del Desarrollo (Checklist)✅ FASE 1: Infraestructura y Base de Datos (COMPLETADO)Creación de estructura de carpetas independiente.Configuración de docker-compose.yml con puertos 9090 y 5433.Creación de Dockerfile anti-firewall (uso de Chromium en lugar de Chrome).Integración de PostgreSQL con SQLAlchemy.Script de autogeneración de usuarios administradores con contraseñas hasheadas.✅ FASE 2: Interfaz y Seguridad (COMPLETADO)Diseño e implementación de login.html con Bootstrap.Protección de rutas con @login_required y limitador de peticiones (5 por minuto en login).Diseño de index.html (Dashboard de control).Diseño de layout_hites.html (Mapeo visual de columnas).⏳ FASE 3: Motor ETL y Lógica de Negocio (PENDIENTE PARA MAÑANA)Migrar el código de tu "Robot v29.0" (Selenium) hacia el archivo core/extractor.py.Ajustar las opciones de Selenium para que utilice el binario de chromium nativo de Linux.Integrar la lógica de limpieza de Pandas en core/transformador.py.Conectar el botón "Iniciar Proceso Ahora" del Dashboard para que dispare el script de extracción en segundo plano.6. Accesos y Credenciales ActualesURL del Sistema: [http://172.26.10.200:9090](http://172.26.10.200:8088)Usuarios habilitados: admin1, admin2, admin3Contraseña maestra: Soporte.2026*
 admin1, admin2, admin3Contraseña maestra: Soporte.2026*
 admin1, admin2, admin3Contraseña maestra: Soporte.2026*
+
+
+
+
+
+SELECT
+    LEFT(COALESCE(rut_cliente, ''), 8) AS rut_sin_digito,
+    LEFT(COALESCE(cod_gestion, ''), 2) AS codigo_de_accion,
+    RIGHT(COALESCE(cod_gestion, ''), 2) AS codigo_de_resultado,
+    RIGHT(COALESCE(telefono, ''), 9) AS telefono_contacto,
+    'EFECTIVA' AS empresa,
+    LEFT(COALESCE(gestor, ''), 10) AS gestor,
+    TO_CHAR(fecha::timestamp, 'DD-MM-YYYY') AS fecha_gestion,
+    TO_CHAR(fecha::timestamp, 'HH24:MI:SS') AS hora_gestion,
+    LEFT(
+        REPLACE(
+            REPLACE(
+                REPLACE(
+                    REPLACE(
+                        REPLACE(
+                            REPLACE(
+                                REPLACE(COALESCE(glosa, ''), 'Ã“', 'O'),
+                            'Ã¡', 'a'),
+                        'Ã©', 'e'),
+                    'Ã-', 'i'),
+                'Ã³', 'o'),
+            'Ã±', 'n'),
+        ',', ' '),
+    150) AS comentario,
+    '' AS mail_contacto
+FROM gestiones
+WHERE rut_cliente IS NOT NULL 
+AND TRIM(rut_cliente) <> '';

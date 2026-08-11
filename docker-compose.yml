@@ -13,8 +13,9 @@ services:
       - "5433:5432"
     volumes:
       - postgres_multimandante_data:/var/lib/postgresql/data
-      # Ancla el reloj al hardware del servidor (Solo lectura)
+      # Ancla el reloj al hardware del servidor (Doble blindaje)
       - /etc/localtime:/etc/localtime:ro 
+      - /etc/timezone:/etc/timezone:ro
 
   # El entorno de Python donde correrá tu Robot Enterprise y la API
   app:
@@ -25,8 +26,9 @@ services:
       - "9090:5000"
     volumes:
       - ./backend:/app
-      # Ancla el reloj al hardware del servidor (Solo lectura)
+      # Ancla el reloj al hardware del servidor (Doble blindaje)
       - /etc/localtime:/etc/localtime:ro 
+      - /etc/timezone:/etc/timezone:ro
     environment:
       - DB_HOST=db
       - DB_NAME=central_etl_db
@@ -49,8 +51,9 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
-      # Ancla el reloj al hardware del servidor (Solo lectura)
+      # Ancla el reloj al hardware del servidor (Doble blindaje)
       - /etc/localtime:/etc/localtime:ro 
+      - /etc/timezone:/etc/timezone:ro
     depends_on:
       - app
 
