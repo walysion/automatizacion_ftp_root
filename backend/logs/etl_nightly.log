@@ -5262,3 +5262,65 @@ WHERE LEFT(campaign, 3) = 'HIT') AS subquery WHERE campaign LIKE 'HIT%%%%']
  * Running on http://127.0.0.1:5000
  * Running on http://172.19.0.3:5000
 2026-10-14 13:09:34,054 | INFO | [33mPress CTRL+C to quit[0m
+2026-10-14 13:25:15,520 | INFO | Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-10-14 13:25:15,521 | INFO | Added job "orquestador_maestro" to job store "default"
+2026-10-14 13:25:15,521 | INFO | Scheduler started
+2026-10-14 13:25:15,522 | INFO | [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.19.0.3:5000
+2026-10-14 13:25:15,523 | INFO | [33mPress CTRL+C to quit[0m
+2026-10-14 13:25:56,750 | INFO | 172.19.0.4 - - [14/Oct/2026 13:25:56] "POST /api/login HTTP/1.1" 200 -
+2026-10-14 13:25:56,943 | INFO | 172.19.0.4 - - [14/Oct/2026 13:25:56] "GET /api/server-time HTTP/1.1" 200 -
+2026-10-14 13:25:56,967 | INFO | 172.19.0.4 - - [14/Oct/2026 13:25:56] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-10-14 13:25:57,265 | INFO | 172.19.0.4 - - [14/Oct/2026 13:25:57] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-10-14 13:27:26,851 | INFO | Iniciando RECOLECTOR para 1 días (2026-10-13 al 2026-10-13)...
+2026-10-14 13:27:27,456 | INFO | Abriendo página de login: https://vicieffectiva.telexpress.cl/sistema_gestion/index.php
+2026-10-14 13:27:29,620 | INFO | 📸 [FOTO TOMADA]: 1_pantalla_antes_login.png
+2026-10-14 13:27:34,984 | INFO | 📸 [FOTO TOMADA]: 2_pantalla_despues_login.png
+2026-10-14 13:27:34,984 | INFO | Sesión iniciada correctamente.
+2026-10-14 13:27:34,984 | INFO | Descargando datos crudos: Día 2026-10-13
+2026-10-14 13:27:55,815 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-10-13.png
+2026-10-14 13:27:55,815 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV (Intento 1)...
+2026-10-14 13:27:58,946 | INFO | Día 2026-10-13 guardado en RAW BD (22,997 filas).
+2026-10-14 13:27:58,946 | INFO | Recolector finalizado. 22997 filas procesadas en 32.11s.
+2026-10-14 13:27:59,019 | INFO | Iniciando TAREA DE INYECCIÓN SQL para cliente: HITES
+2026-10-14 13:27:59,020 | INFO | ⏳ [VIAJE EN EL TIEMPO] Procesando y enrutando con fecha base: 2026-10-13
+2026-10-14 13:27:59,024 | INFO | ⚙️ Motor SQL: Aplicando filtro automático desde 2026-10-13 hasta 2026-10-13
+2026-10-14 13:27:59,024 | INFO | ⚙️ Ejecutando Motor SQL de transformación (Código con CTE dinámica)...
+2026-10-14 13:27:59,334 | INFO | 🌐 Inyectando archivo procesado de HITES al FTP en in/gestiones/10_2026...
+2026-10-14 13:27:59,779 | INFO | Connected (version 2.0, client OpenSSH_8.0)
+2026-10-14 13:28:00,399 | INFO | Authentication (password) successful!
+2026-10-14 13:28:01,111 | INFO | [chan 0] Opened sftp connection (server version 3)
+2026-10-14 13:28:05,905 | INFO | [chan 0] sftp session closed.
+2026-10-14 13:28:05,905 | INFO | ✅ ¡Inyección FTP exitosa para hites (14051 registros)!
+2026-10-14 13:28:05,909 | INFO | 172.19.0.4 - - [14/Oct/2026 13:28:05] "POST /api/robot/rescate HTTP/1.1" 200 -
+2026-10-14 17:07:20,383 | INFO | 172.19.0.4 - - [14/Oct/2026 17:07:20] "POST /api/login HTTP/1.1" 200 -
+2026-10-14 17:07:20,440 | INFO | 172.19.0.4 - - [14/Oct/2026 17:07:20] "GET /api/server-time HTTP/1.1" 200 -
+2026-10-14 17:07:20,440 | INFO | 172.19.0.4 - - [14/Oct/2026 17:07:20] "GET /api/layout/hites HTTP/1.1" 200 -
+2026-10-14 17:07:20,504 | INFO | 172.19.0.4 - - [14/Oct/2026 17:07:20] "GET /api/config/vicidial HTTP/1.1" 200 -
+2026-10-14 17:07:56,560 | INFO | Removed job etl_maestro_hites
+2026-10-14 17:07:56,562 | INFO | Added job "orquestador_maestro" to job store "default"
+2026-10-14 17:07:56,564 | INFO | 172.19.0.4 - - [14/Oct/2026 17:07:56] "POST /api/layout/hites/guardar HTTP/1.1" 200 -
+2026-10-14 21:00:00,001 | INFO | Running job "orquestador_maestro (trigger: cron[day_of_week='fri,mon,tue,thu,wed,sat', hour='21', minute='0'], next run at: 2026-10-14 21:00:00 -03)" (scheduled at 2026-10-14 21:00:00-03:00)
+2026-10-14 21:00:00,003 | INFO | Iniciando RECOLECTOR para 1 días (2026-10-14 al 2026-10-14)...
+2026-10-14 21:00:00,300 | INFO | Abriendo página de login: https://vicieffectiva.telexpress.cl/sistema_gestion/index.php
+2026-10-14 21:00:02,439 | INFO | 📸 [FOTO TOMADA]: 1_pantalla_antes_login.png
+2026-10-14 21:00:08,246 | INFO | 📸 [FOTO TOMADA]: 2_pantalla_despues_login.png
+2026-10-14 21:00:08,246 | INFO | Sesión iniciada correctamente.
+2026-10-14 21:00:08,246 | INFO | Descargando datos crudos: Día 2026-10-14
+2026-10-14 21:00:28,760 | INFO | 📸 [FOTO TOMADA]: 3_pantalla_descarga_2026-10-14.png
+2026-10-14 21:00:28,760 | INFO | 🕵️‍♂️ [FORENSE] Buscando CSV (Intento 1)...
+2026-10-14 21:00:29,745 | INFO | Día 2026-10-14 guardado en RAW BD (33,481 filas).
+2026-10-14 21:00:29,745 | INFO | Recolector finalizado. 33481 filas procesadas en 29.74s.
+2026-10-14 21:00:29,818 | INFO | Iniciando TAREA DE INYECCIÓN SQL para cliente: HITES
+2026-10-14 21:00:29,819 | INFO | ⏳ [VIAJE EN EL TIEMPO] Procesando y enrutando con fecha base: 2026-10-14
+2026-10-14 21:00:29,822 | INFO | ⚙️ Motor SQL: Aplicando filtro automático desde 2026-10-14 hasta 2026-10-14
+2026-10-14 21:00:29,822 | INFO | ⚙️ Ejecutando Motor SQL de transformación (Código con CTE dinámica)...
+2026-10-14 21:00:30,131 | INFO | 🌐 Inyectando archivo procesado de HITES al FTP en in/gestiones/10_2026...
+2026-10-14 21:00:30,352 | INFO | Connected (version 2.0, client OpenSSH_8.0)
+2026-10-14 21:00:30,953 | INFO | Authentication (password) successful!
+2026-10-14 21:00:31,625 | INFO | [chan 0] Opened sftp connection (server version 3)
+2026-10-14 21:00:34,579 | INFO | [chan 0] sftp session closed.
+2026-10-14 21:00:34,579 | INFO | ✅ ¡Inyección FTP exitosa para hites (18366 registros)!
+2026-10-14 21:00:34,582 | INFO | Job "orquestador_maestro (trigger: cron[day_of_week='fri,mon,tue,thu,wed,sat', hour='21', minute='0'], next run at: 2026-10-15 21:00:00 -03)" executed successfully

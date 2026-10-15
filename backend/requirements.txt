@@ -6,7 +6,7 @@ pandas
 numpy<2.0.0
 selenium
 SQLAlchemy
-psycopg2-binary
+psycopg[binary]
 Flask-CORS
 APScheduler
 paramiko
